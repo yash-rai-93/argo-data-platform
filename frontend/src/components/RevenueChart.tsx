@@ -4,6 +4,7 @@ import { TrendingUp } from "lucide-react";
 import {
   Area,
   AreaChart,
+  CartesianGrid,
   ResponsiveContainer,
   Tooltip,
   type TooltipProps,
@@ -43,18 +44,20 @@ export default function RevenueChart() {
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart
             data={DATA}
+            accessibilityLayer={false}
             margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
           >
             <defs>
               <linearGradient id="mrrFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#22d3ee" stopOpacity={0.5} />
-                <stop offset="100%" stopColor="#6366f1" stopOpacity={0} />
-              </linearGradient>
-              <linearGradient id="mrrStroke" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stopColor="#6366f1" />
-                <stop offset="100%" stopColor="#22d3ee" />
+                <stop offset="0%" stopColor="#06b6d4" stopOpacity={0.22} />
+                <stop offset="100%" stopColor="#06b6d4" stopOpacity={0} />
               </linearGradient>
             </defs>
+            <CartesianGrid
+              strokeDasharray="3 3"
+              stroke="rgba(255,255,255,0.03)"
+              vertical={false}
+            />
             <XAxis
               dataKey="month"
               stroke="#64748b"
@@ -71,17 +74,17 @@ export default function RevenueChart() {
             <Area
               type="monotone"
               dataKey="mrr"
-              stroke="url(#mrrStroke)"
+              stroke="#06b6d4"
               strokeWidth={6}
-              strokeOpacity={0.25}
+              strokeOpacity={0.2}
               fill="none"
               isAnimationActive={false}
             />
             <Area
               type="monotone"
               dataKey="mrr"
-              stroke="url(#mrrStroke)"
-              strokeWidth={3}
+              stroke="#06b6d4"
+              strokeWidth={2.5}
               fill="url(#mrrFill)"
             />
           </AreaChart>
