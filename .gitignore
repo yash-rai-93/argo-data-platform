@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Virtual environments / uv
+.venv/
+uv.lock.bak
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+*.pem
+secrets/
+
+# dbt
+target/
+dbt_packages/
+logs/
+.dbt/
+
+# Data artifacts (public demo runs on regenerated synthetic data)
+*.duckdb
+*.sqlite
+*.parquet
+data/raw/
+data/generated/
+
+# Notebooks
+.ipynb_checkpoints/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
