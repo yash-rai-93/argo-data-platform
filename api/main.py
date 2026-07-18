@@ -5,7 +5,7 @@ from __future__ import annotations
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.routers import intelligence, metrics, predict
+from api.routers import customers, intelligence, metrics, predict
 
 app = FastAPI(title="ARGO Product Intelligence API")
 
@@ -20,6 +20,7 @@ app.add_middleware(
 app.include_router(metrics.router)
 app.include_router(intelligence.router)
 app.include_router(predict.router)
+app.include_router(customers.router)
 
 
 @app.get("/health")

@@ -41,4 +41,12 @@ def model(dbt, session):
     frame["churn_probability"] = classifier.predict_proba(features)[:, 1]
     frame["predicted_churn_flag"] = classifier.predict(features).astype(int)
 
-    return frame[["user_id", "churn_probability", "predicted_churn_flag"]]
+    return frame[
+        [
+            "user_id",
+            "total_sessions",
+            "account_age_days",
+            "churn_probability",
+            "predicted_churn_flag",
+        ]
+    ]

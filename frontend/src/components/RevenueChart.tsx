@@ -64,7 +64,18 @@ export default function RevenueChart() {
             <YAxis stroke="#64748b" tickLine={false} axisLine={false} width={40} />
             <Tooltip
               content={<CustomTooltip />}
-              cursor={{ stroke: "#22d3ee", strokeOpacity: 0.2 }}
+              wrapperStyle={{ outline: "none", border: "none" }}
+              contentStyle={{ border: "none", background: "transparent" }}
+              cursor={{ stroke: "rgba(34,211,238,0.2)", strokeWidth: 2 }}
+            />
+            <Area
+              type="monotone"
+              dataKey="mrr"
+              stroke="url(#mrrStroke)"
+              strokeWidth={6}
+              strokeOpacity={0.25}
+              fill="none"
+              isAnimationActive={false}
             />
             <Area
               type="monotone"

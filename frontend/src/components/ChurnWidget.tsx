@@ -32,9 +32,6 @@ const SCENARIOS: { name: string; features: ChurnFeatures }[] = [
   },
 ];
 
-const INPUT_CLASS =
-  "w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-cyan-400 focus:border-transparent outline-none transition-all";
-
 export default function ChurnWidget() {
   const [values, setValues] = useState<Record<FieldKey, string>>({
     total_sessions: "",
@@ -79,7 +76,7 @@ export default function ChurnWidget() {
   const highRisk = result ? result.probability >= 0.5 : false;
 
   return (
-    <section className="glass-panel p-6">
+    <section className="glass-panel p-6 transition-all focus-within:ring-1 focus-within:ring-cyan-400/40 focus-within:shadow-[0_0_30px_rgba(34,211,238,0.25)]">
       <div className="mb-4 flex items-center gap-2">
         <Gauge className="h-5 w-5 text-cyan-400" />
         <h2 className="text-lg font-semibold text-slate-100">
@@ -102,20 +99,24 @@ export default function ChurnWidget() {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {FIELDS.map((f) => (
-          <div key={f.key} className="flex flex-col gap-1">
-            <label htmlFor={f.key} className="text-sm text-slate-400">
-              {f.label}
-            </label>
+          <div key={f.key} className="relative">
             <input
               id={f.key}
               type="number"
               required
+              placeholder=" "
               value={values[f.key]}
               onChange={(e) =>
                 setValues((v) => ({ ...v, [f.key]: e.target.value }))
               }
-              className={INPUT_CLASS}
+              className="peer w-full rounded-xl border border-white/10 bg-slate-900/40 px-4 pb-2 pt-5 text-white opacity-70 outline-none transition-all focus:border-cyan-400/70 focus:opacity-100 focus:ring-2 focus:ring-cyan-400/40"
             />
+            <label
+              htmlFor={f.key}
+              className="pointer-events-none absolute left-4 top-4 text-sm text-slate-500 transition-all peer-focus:top-1.5 peer-focus:text-xs peer-focus:text-cyan-300 peer-[:not(:placeholder-shown)]:top-1.5 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:text-slate-400"
+            >
+              {f.label}
+            </label>
           </div>
         ))}
 

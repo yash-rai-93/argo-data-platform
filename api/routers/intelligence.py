@@ -17,7 +17,7 @@ DbConn = Annotated[duckdb.DuckDBPyConnection, Depends(get_db)]
 
 @router.get("/summary")
 def executive_summary(db: DbConn) -> dict:
-    """Generate a strategic narrative from the latest executive metrics."""
+    """Return a strategic narrative and its reasoning trace for the latest metrics."""
     metrics = fetch_executive_metrics(db)
     engine = InsightEngine()
-    return {"summary": engine.generate_executive_summary(metrics)}
+    return engine.generate_executive_summary(metrics)
