@@ -8,6 +8,7 @@ export interface ExecutiveMetrics {
 
 export interface IntelligenceSummary {
   summary: string;
+  reasoning?: string;
 }
 
 export interface ChurnFeatures {
@@ -19,6 +20,13 @@ export interface ChurnFeatures {
 export interface ChurnPrediction {
   churn_prediction: number;
   probability: number;
+}
+
+export interface CustomerRisk {
+  user_id: string;
+  account_age_days: number;
+  total_sessions: number;
+  churn_probability: number;
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -49,4 +57,8 @@ export async function predictChurn(
     method: "POST",
     body: JSON.stringify(features),
   });
+}
+
+export async function fetchRiskList(): Promise<CustomerRisk[]> {
+  return request<CustomerRisk[]>("/customers/risk");
 }

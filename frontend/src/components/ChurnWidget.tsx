@@ -3,7 +3,11 @@
 import { AlertTriangle, Gauge, ShieldCheck } from "lucide-react";
 import { type FormEvent, useState } from "react";
 
-import { predictChurn, type ChurnPrediction } from "@/lib/api";
+import {
+  predictChurn,
+  type ChurnFeatures,
+  type ChurnPrediction,
+} from "@/lib/api";
 
 const FIELDS = [
   { key: "total_sessions", label: "Total Sessions" },
@@ -12,6 +16,24 @@ const FIELDS = [
 ] as const;
 
 type FieldKey = (typeof FIELDS)[number]["key"];
+
+const SCENARIOS: { name: string; features: ChurnFeatures }[] = [
+  {
+    name: "Slipping Enterprise Customer",
+    features: { total_sessions: 14, avg_session_duration: 95, account_age_days: 240 },
+  },
+  {
+    name: "Healthy Power User",
+    features: { total_sessions: 92, avg_session_duration: 330, account_age_days: 65 },
+  },
+  {
+    name: "Inactive Trial User",
+    features: { total_sessions: 1, avg_session_duration: 25, account_age_days: 18 },
+  },
+];
+
+const INPUT_CLASS =
+  "w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-cyan-400 focus:border-transparent outline-none transition-all";
 
 export default function ChurnWidget() {
   const [values, setValues] = useState<Record<FieldKey, string>>({
@@ -23,18 +45,12 @@ export default function ChurnWidget() {
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
+  async function runPrediction(features: ChurnFeatures) {
     setError("");
     setResult(null);
     setLoading(true);
     try {
-      const prediction = await predictChurn({
-        total_sessions: Number(values.total_sessions),
-        avg_session_duration: Number(values.avg_session_duration),
-        account_age_days: Number(values.account_age_days),
-      });
-      setResult(prediction);
+      setResult(await predictChurn(features));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Prediction failed");
     } finally {
@@ -42,15 +58,46 @@ export default function ChurnWidget() {
     }
   }
 
+  function loadScenario(features: ChurnFeatures) {
+    setValues({
+      total_sessions: String(features.total_sessions),
+      avg_session_duration: String(features.avg_session_duration),
+      account_age_days: String(features.account_age_days),
+    });
+    runPrediction(features);
+  }
+
+  function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    runPrediction({
+      total_sessions: Number(values.total_sessions),
+      avg_session_duration: Number(values.avg_session_duration),
+      account_age_days: Number(values.account_age_days),
+    });
+  }
+
   const highRisk = result ? result.probability >= 0.5 : false;
 
   return (
-    <section className="rounded-xl border border-slate-800 bg-slate-900 p-6">
+    <section className="glass-panel p-6">
       <div className="mb-4 flex items-center gap-2">
-        <Gauge className="h-5 w-5 text-indigo-400" />
+        <Gauge className="h-5 w-5 text-cyan-400" />
         <h2 className="text-lg font-semibold text-slate-100">
           Churn Risk Predictor
         </h2>
+      </div>
+
+      <div className="mb-4 flex flex-wrap gap-2">
+        {SCENARIOS.map((s) => (
+          <button
+            key={s.name}
+            type="button"
+            onClick={() => loadScenario(s.features)}
+            className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-slate-300 transition-all hover:border-cyan-400/50 hover:text-cyan-300"
+          >
+            {s.name}
+          </button>
+        ))}
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -67,7 +114,7 @@ export default function ChurnWidget() {
               onChange={(e) =>
                 setValues((v) => ({ ...v, [f.key]: e.target.value }))
               }
-              className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100 outline-none focus:border-indigo-400"
+              className={INPUT_CLASS}
             />
           </div>
         ))}
@@ -75,37 +122,49 @@ export default function ChurnWidget() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-lg bg-indigo-500 px-4 py-2 font-medium text-white transition-colors hover:bg-indigo-400 disabled:opacity-50"
+          className="w-full bg-gradient-to-r from-indigo-500 to-cyan-400 text-white font-bold py-3 rounded-xl shadow-[0_0_20px_rgba(34,211,238,0.4)] hover:opacity-90 disabled:opacity-50 transition-all"
         >
           {loading ? "Scoring..." : "Predict Churn"}
         </button>
       </form>
 
       {error && (
-        <div className="mt-4 rounded-lg border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-300">
+        <div className="mt-4 rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-300">
           {error}
         </div>
       )}
 
       {result && (
         <div
-          className={`mt-4 flex items-center justify-between rounded-lg border p-4 ${
+          className={`mt-4 flex items-center justify-between rounded-xl border p-4 ${
             highRisk
-              ? "border-red-500/40 bg-red-500/10"
-              : "border-emerald-500/40 bg-emerald-500/10"
+              ? "border-red-500/50 bg-red-500/10 shadow-[0_0_25px_rgba(239,68,68,0.55)]"
+              : "border-emerald-500/50 bg-emerald-500/10 shadow-[0_0_25px_rgba(16,185,129,0.55)]"
           }`}
         >
           <div className="flex items-center gap-2">
             {highRisk ? (
-              <AlertTriangle className="h-5 w-5 text-red-400" />
+              <AlertTriangle className="h-5 w-5 text-red-400 drop-shadow-[0_0_8px_rgba(239,68,68,0.9)]" />
             ) : (
-              <ShieldCheck className="h-5 w-5 text-emerald-400" />
+              <ShieldCheck className="h-5 w-5 text-emerald-400 drop-shadow-[0_0_8px_rgba(16,185,129,0.9)]" />
             )}
-            <span className={highRisk ? "text-red-300" : "text-emerald-300"}>
+            <span
+              className={
+                highRisk
+                  ? "text-red-300 drop-shadow-[0_0_8px_rgba(239,68,68,0.7)]"
+                  : "text-emerald-300 drop-shadow-[0_0_8px_rgba(16,185,129,0.7)]"
+              }
+            >
               {highRisk ? "High risk" : "Low risk"}
             </span>
           </div>
-          <span className="text-2xl font-semibold text-slate-100">
+          <span
+            className={`text-2xl font-bold ${
+              highRisk
+                ? "text-red-400 drop-shadow-[0_0_12px_rgba(239,68,68,0.9)]"
+                : "text-emerald-400 drop-shadow-[0_0_12px_rgba(16,185,129,0.9)]"
+            }`}
+          >
             {(result.probability * 100).toFixed(1)}%
           </span>
         </div>
