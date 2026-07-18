@@ -32,3 +32,14 @@ models:
         data_tests:
           - unique
           - not_null
+
+  - name: ml_churn_scores
+    description: Per-user churn probability scored by the XGBoost model.
+    columns:
+      - name: user_id
+        data_tests:
+          - unique
+          - not_null
+      - name: churn_probability
+        data_tests:
+          - not_null

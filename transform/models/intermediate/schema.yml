@@ -16,3 +16,11 @@ models:
         data_tests:
           - unique
           - not_null
+
+  - name: dim_date
+    description: Calendar date spine for time-intelligence.
+    columns:
+      - name: date_day
+        data_tests:
+          - unique
+          - not_null

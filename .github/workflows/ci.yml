@@ -42,7 +42,16 @@ jobs:
         working-directory: transform
         run: uv run sqlfluff lint models/
 
-      # build = run + test; source paths resolve relative to this directory.
-      - name: dbt build
+      # Build the warehouse first so training has dim_users / int_sessions to read.
+      - name: dbt build warehouse
         working-directory: transform
-        run: uv run dbt build --profiles-dir .
+        run: uv run dbt build --exclude ml_churn_scores --profiles-dir .
+
+      # Train the churn model so the artifact exists for the ml_churn_scores model.
+      - name: Train churn model
+        run: uv run python ml/train_churn.py
+
+      # Now build and test the Python scoring model against the fresh artifact.
+      - name: dbt build churn scores
+        working-directory: transform
+        run: uv run dbt build --select ml_churn_scores --profiles-dir .

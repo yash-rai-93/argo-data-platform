@@ -1,16 +1,13 @@
--- Monthly recurring revenue, recognised on completed payments.
--- Plan prices are illustrative placeholders (USD/month).
+-- Monthly recurring revenue, priced from the subscription-plan seed.
 with monthly as (
     select
-        date_trunc('month', event_timestamp) as revenue_month,
-        sum(case subscription_plan
-            when 'Pro' then 20
-            when 'Enterprise' then 100
-            else 0
-        end) as mrr
-    from {{ ref('fact_subscriptions') }}
-    where subscription_action = 'payment_completed'
-    group by date_trunc('month', event_timestamp)
+        date_trunc('month', f.event_timestamp) as revenue_month,
+        sum(p.monthly_price) as mrr
+    from {{ ref('fact_subscriptions') }} as f
+    inner join {{ ref('dim_subscription_plan') }} as p
+        on f.subscription_plan = p.subscription_plan
+    where f.subscription_action = 'payment_completed'
+    group by date_trunc('month', f.event_timestamp)
 )
 
 select
