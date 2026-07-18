@@ -14,24 +14,48 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import ArgoBriefing from "@/components/ArgoBriefing";
 import ChurnWidget from "@/components/ChurnWidget";
+import PipelineLineage from "@/components/PipelineLineage";
 import RevenueChart from "@/components/RevenueChart";
 import RiskTable from "@/components/RiskTable";
 import Sparkline from "@/components/Sparkline";
+import TelemetryLog from "@/components/TelemetryLog";
 import {
   fetchExecutiveMetrics,
   fetchIntelligenceSummary,
   type ExecutiveMetrics,
 } from "@/lib/api";
 
-const NAV = [
-  { label: "Command Suite", icon: LayoutDashboard, active: true },
-  { label: "ML Engine", icon: Cpu, active: false },
-  { label: "Retention", icon: Users, active: false },
-  { label: "Settings", icon: Settings, active: false },
+const NAV_GROUPS = [
+  {
+    heading: "Core Platform",
+    items: [
+      { id: "command", label: "Command Suite", icon: LayoutDashboard },
+      { id: "ml", label: "ML Engine", icon: Cpu },
+    ],
+  },
+  {
+    heading: "System",
+    items: [
+      { id: "retention", label: "Retention", icon: Users, badge: "3" },
+      { id: "settings", label: "Settings", icon: Settings },
+    ],
+  },
+] as const;
+
+type TabId = (typeof NAV_GROUPS)[number]["items"][number]["id"];
+
+const SETTINGS = [
+  { label: "API Base URL", value: "http://127.0.0.1:8000/api/v1" },
+  { label: "Inference Model", value: "nvidia/nemotron-3-ultra-550b-a55b" },
+  { label: "Churn Decision Threshold", value: "0.50" },
+  { label: "Warehouse Engine", value: "DuckDB (dbt marts)" },
+  { label: "Data Mode", value: "Synthetic, seeded (reproducible)" },
 ];
 
 export default function Home() {
+  const [activeTab, setActiveTab] = useState<TabId>("command");
   const [metrics, setMetrics] = useState<ExecutiveMetrics | null>(null);
   const [summary, setSummary] = useState<string>("");
   const [reasoning, setReasoning] = useState<string>("");
@@ -92,30 +116,247 @@ export default function Home() {
       ]
     : [];
 
+  function renderWorkspace() {
+    switch (activeTab) {
+      case "ml":
+        return (
+          <section className="space-y-6">
+            <div>
+              <h2 className="text-xl font-semibold">Advanced Model Playground</h2>
+              <p className="text-sm text-slate-400">
+                Probe the XGBoost churn engine with custom or preset behavioral
+                vectors and watch it discriminate risk in real time.
+              </p>
+            </div>
+            <ChurnWidget />
+            <div className="glass-panel p-6">
+              <h3 className="mb-2 text-base font-semibold text-cyan-300">
+                How the model works
+              </h3>
+              <p className="text-sm leading-relaxed text-slate-400">
+                The machine learning model analyzes session volume and account
+                age to identify patterns of abandonment. Accounts with few recent
+                sessions but long tenure resemble past customers who quietly
+                lapsed, so the model assigns them a higher churn probability,
+                turning raw behavior into an early-warning signal.
+              </p>
+            </div>
+          </section>
+        );
+      case "retention":
+        return (
+          <section className="space-y-4">
+            <div>
+              <h2 className="text-xl font-semibold">Retention Command Queue</h2>
+              <p className="text-sm text-slate-400">
+                High-density queue of accounts flagged by the churn model, ranked
+                by predicted risk and ready for a save motion.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+              <RiskTable />
+              <div className="glass-panel p-6">
+                <h3 className="mb-2 text-base font-semibold text-cyan-300">
+                  Reading the queue
+                </h3>
+                <p className="text-sm leading-relaxed text-slate-400">
+                  Each row is an account the churn model flagged as high risk,
+                  ranked by probability. Account age and session counts explain
+                  why it is slipping, and the Deploy Save Offer action launches a
+                  retention workflow, so the team can intervene before the
+                  subscription cancels.
+                </p>
+              </div>
+            </div>
+          </section>
+        );
+      case "settings":
+        return (
+          <section className="glass-panel p-6">
+            <h2 className="mb-4 text-xl font-semibold">Platform Parameters</h2>
+            <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {SETTINGS.map((s) => (
+                <div
+                  key={s.label}
+                  className="rounded-xl border border-slate-800/60 bg-slate-950/40 p-4"
+                >
+                  <dt className="text-xs text-slate-500">{s.label}</dt>
+                  <dd className="mt-1 font-mono text-sm text-slate-200">
+                    {s.value}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+        );
+      default:
+        return (
+          <>
+            <div className="glass-panel mb-8 flex flex-wrap items-center gap-x-8 gap-y-3 px-6 py-4 text-sm">
+              <span className="flex items-center gap-2">
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
+                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400" />
+                </span>
+                <span className="font-medium text-slate-300">
+                  System Health &amp; Data Ingestion Pipeline
+                </span>
+              </span>
+              <span className="flex items-center gap-2 text-slate-400">
+                <Activity className="h-4 w-4 text-emerald-400" />
+                Pipeline: <span className="text-emerald-300">Operational</span>
+              </span>
+              <span className="flex items-center gap-2 text-slate-400">
+                <TrendingUp className="h-4 w-4 text-cyan-400" />
+                Ingestion:{" "}
+                <span className="font-mono text-cyan-300">
+                  {ingest.toLocaleString()} events/sec
+                </span>
+              </span>
+              <span className="flex items-center gap-2 text-slate-400">
+                <Database className="h-4 w-4 text-indigo-400" />
+                Warehouse Nodes: <span className="text-indigo-300">Active</span>
+              </span>
+            </div>
+
+            <div className="mb-8">
+              <ArgoBriefing />
+            </div>
+
+            <div className="mb-8">
+              <PipelineLineage />
+            </div>
+
+            {error && (
+              <div className="mb-6 rounded-lg border border-red-500/40 bg-red-500/10 p-4 text-red-300">
+                {error}
+              </div>
+            )}
+
+            <section className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-3">
+              {loading
+                ? Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="glass-panel h-36 animate-pulse" />
+                  ))
+                : cards.map((c) => {
+                    const Icon = c.icon;
+                    return (
+                      <motion.div
+                        key={c.label}
+                        whileHover={{ y: -5 }}
+                        className="glass-panel p-6"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-slate-300">
+                            {c.label}
+                          </span>
+                          <Icon className="h-5 w-5 shrink-0 text-indigo-400" />
+                        </div>
+                        <p className="mt-4 font-mono text-3xl font-semibold">
+                          {c.value}
+                        </p>
+                        <div className="mt-3">
+                          <Sparkline data={c.spark} color={c.color} />
+                        </div>
+                        <p className="mt-2 text-xs text-slate-500">{c.desc}</p>
+                      </motion.div>
+                    );
+                  })}
+            </section>
+
+            <div className="mb-8">
+              <RevenueChart />
+            </div>
+
+            <section className="glass-panel mb-8 p-6">
+              <div className="mb-3 flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-indigo-400" />
+                <h2 className="text-lg font-semibold">AI Intelligence Summary</h2>
+              </div>
+              {loading ? (
+                <div className="h-16 animate-pulse rounded bg-white/10" />
+              ) : (
+                <>
+                  <p className="leading-relaxed text-slate-300">
+                    {summary ||
+                      "Summary unavailable (requires a configured API key)."}
+                  </p>
+                  {reasoning && (
+                    <p className="mt-3 border-t border-white/10 pt-3 text-xs leading-relaxed text-slate-500">
+                      {reasoning}
+                    </p>
+                  )}
+                </>
+              )}
+            </section>
+
+            <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+              <RiskTable />
+              <ChurnWidget />
+            </section>
+          </>
+        );
+    }
+  }
+
   return (
-    <div className="flex min-h-screen">
-      <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col gap-1 border-r border-white/10 bg-white/5 p-4 backdrop-blur-xl md:flex">
+    <>
+      <div className="light-leak-cyan" />
+      <div className="light-leak-indigo" />
+      <div className="flex min-h-screen">
+      <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-white/10 bg-white/5 p-4 backdrop-blur-xl md:flex">
         <div className="mb-6 flex items-center gap-2 px-2">
           <Sparkles className="h-6 w-6 text-cyan-400" />
           <span className="text-lg font-bold">ARGO</span>
         </div>
-        {NAV.map((n) => {
-          const Icon = n.icon;
-          return (
-            <button
-              key={n.label}
-              type="button"
-              className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-all ${
-                n.active
-                  ? "bg-white/10 text-white shadow-[0_0_14px_rgba(34,211,238,0.25)]"
-                  : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
-              }`}
-            >
-              <Icon className="h-4 w-4" />
-              {n.label}
-            </button>
-          );
-        })}
+
+        {NAV_GROUPS.map((group) => (
+          <div key={group.heading} className="mb-4">
+            <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+              {group.heading}
+            </p>
+            <div className="flex flex-col gap-1">
+              {group.items.map((n) => {
+                const Icon = n.icon;
+                const active = activeTab === n.id;
+                return (
+                  <button
+                    key={n.id}
+                    type="button"
+                    onClick={() => setActiveTab(n.id)}
+                    className={`flex items-center gap-3 rounded-xl border-l-2 px-3 py-2 text-sm transition-all ${
+                      active
+                        ? "border-cyan-400 bg-white/10 text-white shadow-[0_0_14px_rgba(34,211,238,0.25)]"
+                        : "border-transparent text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                    }`}
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span className="text-xs font-bold uppercase tracking-widest">
+                      {n.label}
+                    </span>
+                    {"badge" in n && (
+                      <span className="ml-auto rounded-full bg-cyan-400/20 px-2 py-0.5 text-[10px] font-bold text-cyan-300">
+                        {n.badge}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+
+        <div className="mt-auto flex items-center gap-3 border-t border-white/10 px-2 pt-4">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-cyan-400 text-sm font-bold text-white">
+            A
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-slate-200">
+              Aarush Udbhav
+            </p>
+            <p className="truncate text-xs text-slate-500">Lead AI Engineer</p>
+          </div>
+        </div>
       </aside>
 
       <main className="flex-1 p-6 lg:p-8">
@@ -130,100 +371,14 @@ export default function Home() {
             </p>
           </header>
 
-          <div className="glass-panel mb-8 flex flex-wrap items-center gap-x-8 gap-y-3 px-6 py-4 text-sm">
-            <span className="flex items-center gap-2">
-              <span className="relative flex h-2.5 w-2.5">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
-                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400" />
-              </span>
-              <span className="font-medium text-slate-300">
-                System Health &amp; Data Ingestion Pipeline
-              </span>
-            </span>
-            <span className="flex items-center gap-2 text-slate-400">
-              <Activity className="h-4 w-4 text-emerald-400" />
-              Pipeline: <span className="text-emerald-300">Operational</span>
-            </span>
-            <span className="flex items-center gap-2 text-slate-400">
-              <TrendingUp className="h-4 w-4 text-cyan-400" />
-              Ingestion:{" "}
-              <span className="font-mono text-cyan-300">
-                {ingest.toLocaleString()} events/sec
-              </span>
-            </span>
-            <span className="flex items-center gap-2 text-slate-400">
-              <Database className="h-4 w-4 text-indigo-400" />
-              Warehouse Nodes: <span className="text-indigo-300">Active</span>
-            </span>
+          {renderWorkspace()}
+
+          <div className="mt-8">
+            <TelemetryLog />
           </div>
-
-          {error && (
-            <div className="mb-6 rounded-lg border border-red-500/40 bg-red-500/10 p-4 text-red-300">
-              {error}
-            </div>
-          )}
-
-          <section className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-3">
-            {loading
-              ? Array.from({ length: 3 }).map((_, i) => (
-                  <div key={i} className="glass-panel h-36 animate-pulse" />
-                ))
-              : cards.map((c) => {
-                  const Icon = c.icon;
-                  return (
-                    <motion.div
-                      key={c.label}
-                      whileHover={{ y: -5 }}
-                      className="glass-panel p-6"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-slate-300">
-                          {c.label}
-                        </span>
-                        <Icon className="h-5 w-5 shrink-0 text-indigo-400" />
-                      </div>
-                      <p className="mt-4 text-3xl font-semibold">{c.value}</p>
-                      <div className="mt-3">
-                        <Sparkline data={c.spark} color={c.color} />
-                      </div>
-                      <p className="mt-2 text-xs text-slate-500">{c.desc}</p>
-                    </motion.div>
-                  );
-                })}
-          </section>
-
-          <div className="mb-8">
-            <RevenueChart />
-          </div>
-
-          <section className="glass-panel mb-8 p-6">
-            <div className="mb-3 flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-indigo-400" />
-              <h2 className="text-lg font-semibold">AI Intelligence Summary</h2>
-            </div>
-            {loading ? (
-              <div className="h-16 animate-pulse rounded bg-white/10" />
-            ) : (
-              <>
-                <p className="leading-relaxed text-slate-300">
-                  {summary ||
-                    "Summary unavailable (requires a configured API key)."}
-                </p>
-                {reasoning && (
-                  <p className="mt-3 border-t border-white/10 pt-3 text-xs leading-relaxed text-slate-500">
-                    {reasoning}
-                  </p>
-                )}
-              </>
-            )}
-          </section>
-
-          <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <RiskTable />
-            <ChurnWidget />
-          </section>
         </div>
       </main>
-    </div>
+      </div>
+    </>
   );
 }

@@ -1,5 +1,17 @@
 @import "tailwindcss";
 
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scale(1) translate(0, 0);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.1) translate(2%, 2%);
+  }
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -8,18 +20,64 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+}
+
+@theme {
+  --font-sans: var(--font-sans), sans-serif;
+  --font-mono: var(--font-mono), monospace;
 }
 
 body {
-  background: radial-gradient(circle at top, #1e1b4b 0%, #020617 100%);
-  color: #f8fafc;
+  background-color: #020408;
+  background-image: linear-gradient(
+      rgba(255, 255, 255, 0.02) 1px,
+      transparent 1px
+    ),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 32px 32px;
+  color: #f1f5f9;
   min-height: 100vh;
+  font-family: var(--font-sans), sans-serif;
+}
+
+.light-leak-cyan {
+  position: fixed;
+  top: -10%;
+  left: -10%;
+  width: 50vw;
+  height: 50vw;
+  background: radial-gradient(circle, rgba(6, 182, 212, 0.08) 0%, transparent 60%);
+  z-index: -1;
+  animation: breathe 12s ease-in-out infinite;
+  pointer-events: none;
+  will-change: transform, opacity;
+  transform: translateZ(0);
+}
+
+.light-leak-indigo {
+  position: fixed;
+  bottom: -20%;
+  right: -10%;
+  width: 60vw;
+  height: 60vw;
+  background: radial-gradient(circle, rgba(79, 70, 229, 0.08) 0%, transparent 60%);
+  z-index: -1;
+  animation: breathe 15s ease-in-out infinite reverse;
+  pointer-events: none;
+  will-change: transform, opacity;
+  transform: translateZ(0);
+}
+
+.recharts-wrapper:focus,
+.recharts-surface:focus,
+.recharts-wrapper * :focus {
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 @layer components {
   .glass-panel {
-    @apply backdrop-blur-xl bg-white/5 border border-white/10 shadow-2xl rounded-2xl;
+    @apply backdrop-blur-2xl bg-slate-950/40 border border-slate-800/60 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.7)] rounded-2xl transition-all duration-300 hover:border-slate-700/60;
   }
 }
