@@ -1,0 +1,10 @@
+version: 2
+
+sources:
+  - name: raw
+    description: Synthetic event feed produced by the generator.
+    tables:
+      - name: events
+        description: Canonical events, read directly from JSONL by DuckDB.
+        meta:
+          external_location: "read_json_auto('../data/raw/events.jsonl')"

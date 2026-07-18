@@ -1,0 +1,34 @@
+version: 2
+
+models:
+  - name: fact_events
+    description: Event-grain fact for product behaviour analysis.
+    columns:
+      - name: event_id
+        data_tests:
+          - unique
+          - not_null
+
+  - name: fact_sessions
+    description: Session-grain fact enriched with user attributes.
+    columns:
+      - name: session_id
+        data_tests:
+          - unique
+          - not_null
+
+  - name: fact_feature_usage
+    description: Feature-grain fact of events touching a named feature.
+    columns:
+      - name: event_id
+        data_tests:
+          - unique
+          - not_null
+
+  - name: fact_subscriptions
+    description: Monetization-grain fact of subscription lifecycle actions.
+    columns:
+      - name: event_id
+        data_tests:
+          - unique
+          - not_null

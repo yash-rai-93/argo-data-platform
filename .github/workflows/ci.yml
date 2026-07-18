@@ -4,9 +4,10 @@ on:
   push:
     branches: [main]
   pull_request:
+    branches: [main]
 
 jobs:
-  quality:
+  lint-and-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -16,12 +17,32 @@ jobs:
         with:
           enable-cache: true
 
+      - name: Install Python 3.12
+        run: uv python install 3.12
+
       - name: Sync environment
         run: uv sync
+
+      - name: Format check
+        run: uv run ruff format --check .
 
       - name: Lint
         run: uv run ruff check .
 
-      - name: Format check
-        run: uv run ruff format --check .
-      # A pytest step joins here with the first test (P1).
+      - name: Test
+        run: uv run pytest -v
+
+      # Raw data is git-ignored, so synthesize a small deterministic feed for the
+      # dbt models to read.
+      - name: Generate sample data
+        run: uv run argo-gen --users 200 --days 60 --seed 42
+
+      # SQLFluff's dbt templater must run from the dbt project root.
+      - name: SQL lint
+        working-directory: transform
+        run: uv run sqlfluff lint models/
+
+      # build = run + test; source paths resolve relative to this directory.
+      - name: dbt build
+        working-directory: transform
+        run: uv run dbt build --profiles-dir .

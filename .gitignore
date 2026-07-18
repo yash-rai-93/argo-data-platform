@@ -16,11 +16,18 @@ uv.lock.bak
 *.pem
 secrets/
 
+# ML artifacts
+ml/models/*.json
+
 # dbt
 target/
 dbt_packages/
 logs/
 .dbt/
+.user.yml
+
+# Internal planning notes (not part of the public portfolio)
+Argo_Summary.md
 
 # Data artifacts (public demo runs on regenerated synthetic data)
 *.duckdb

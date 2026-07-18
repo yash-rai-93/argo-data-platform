@@ -25,8 +25,8 @@ records rules that outlive any single task.
   first implementation needs it. No placeholders or speculative files.
 - **Layers depend downward only:** `generator → warehouse → transform → serve →
   present`. No upstream imports.
-- **Formatting/linting is enforced** by Ruff (Python) and, once SQL exists,
-  SQLFluff (Postgres dialect, dbt templater). Fix, don't suppress.
+- **Formatting/linting is enforced** by Ruff (Python) and SQLFluff
+  (DuckDB dialect, dbt templater). Fix, don't suppress.
 - **SQL/dbt:** models are `snake_case`; facts `fact_*`, dimensions `dim_*`.
   Every metric is defined once, in the semantic layer.
 - **Secrets** live in `.env` (git-ignored) and are read via config, never

@@ -1,0 +1,7 @@
+argo:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: argo.duckdb
+      threads: 4
