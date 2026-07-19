@@ -1,6 +1,7 @@
 "use client";
 
 import { TrendingUp } from "lucide-react";
+import { useEffect, useState } from "react";
 import {
   Area,
   AreaChart,
@@ -12,14 +13,7 @@ import {
   YAxis,
 } from "recharts";
 
-const DATA = [
-  { month: "Feb", mrr: 420 },
-  { month: "Mar", mrr: 520 },
-  { month: "Apr", mrr: 610 },
-  { month: "May", mrr: 680 },
-  { month: "Jun", mrr: 740 },
-  { month: "Jul", mrr: 880 },
-];
+import { fetchMrrTrend, type TrendMetric } from "@/lib/api";
 
 function CustomTooltip({ active, payload, label }: TooltipProps<number, string>) {
   if (!active || !payload || payload.length === 0) return null;
@@ -34,6 +28,28 @@ function CustomTooltip({ active, payload, label }: TooltipProps<number, string>)
 }
 
 export default function RevenueChart() {
+  const [data, setData] = useState<TrendMetric[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    fetchMrrTrend()
+      .then(setData)
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return (
+      <section className="glass-panel flex h-80 items-center justify-center p-6">
+        <div className="flex items-center gap-3">
+          <span className="h-2.5 w-2.5 animate-ping rounded-full bg-cyan-400" />
+          <span className="animate-pulse font-mono text-sm text-cyan-300 drop-shadow-[0_0_12px_rgba(34,211,238,0.6)]">
+            Streaming warehouse telemetry...
+          </span>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="glass-panel p-6">
       <div className="mb-4 flex items-center gap-2">
@@ -43,7 +59,7 @@ export default function RevenueChart() {
       <div className="h-64 w-full">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart
-            data={DATA}
+            data={data}
             accessibilityLayer={false}
             margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
           >
@@ -59,7 +75,7 @@ export default function RevenueChart() {
               vertical={false}
             />
             <XAxis
-              dataKey="month"
+              dataKey="name"
               stroke="#64748b"
               tickLine={false}
               axisLine={false}

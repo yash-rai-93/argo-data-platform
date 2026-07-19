@@ -3,10 +3,12 @@
 import { AlertTriangle, Gauge, ShieldCheck, SlidersHorizontal } from "lucide-react";
 import { type FormEvent, useState } from "react";
 
+import ShapExplanation from "@/components/ShapExplanation";
 import {
   predictChurn,
   type ChurnFeatures,
   type ChurnPrediction,
+  type ShapAttribution,
 } from "@/lib/api";
 
 const FIELDS = [
@@ -39,6 +41,7 @@ export default function ChurnWidget() {
     account_age_days: "",
   });
   const [result, setResult] = useState<ChurnPrediction | null>(null);
+  const [shapData, setShapData] = useState<ShapAttribution[]>([]);
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
 
@@ -68,9 +71,12 @@ export default function ChurnWidget() {
   async function runPrediction(features: ChurnFeatures) {
     setError("");
     setResult(null);
+    setShapData([]);
     setLoading(true);
     try {
-      setResult(await predictChurn(features));
+      const prediction = await predictChurn(features);
+      setResult(prediction);
+      setShapData(prediction.shap_attribution);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Prediction failed");
     } finally {
@@ -236,6 +242,12 @@ export default function ChurnWidget() {
           </div>
         </div>
       </div>
+
+      {result && (
+        <div className="mt-6">
+          <ShapExplanation data={shapData} />
+        </div>
+      )}
     </section>
   );
 }

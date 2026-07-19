@@ -6,7 +6,9 @@ import {
   Cpu,
   Database,
   DollarSign,
+  Download,
   LayoutDashboard,
+  Loader2,
   Settings,
   Sparkles,
   TrendingUp,
@@ -20,12 +22,18 @@ import PipelineLineage from "@/components/PipelineLineage";
 import RevenueChart from "@/components/RevenueChart";
 import RiskTable from "@/components/RiskTable";
 import Sparkline from "@/components/Sparkline";
+import StrategyMatrix from "@/components/StrategyMatrix";
 import TelemetryLog from "@/components/TelemetryLog";
 import {
+  fetchArrSparkline,
+  fetchDauSparkline,
   fetchExecutiveMetrics,
   fetchIntelligenceSummary,
+  fetchMrrTrend,
   type ExecutiveMetrics,
+  type TrendMetric,
 } from "@/lib/api";
+import { generateBoardReport } from "@/lib/pdfReport";
 
 const NAV_GROUPS = [
   {
@@ -62,6 +70,19 @@ export default function Home() {
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(true);
   const [ingest, setIngest] = useState<number>(1420);
+  const [dauSpark, setDauSpark] = useState<number[]>([]);
+  const [arrSpark, setArrSpark] = useState<number[]>([]);
+  const [trendData, setTrendData] = useState<TrendMetric[]>([]);
+  const [isExporting, setIsExporting] = useState<boolean>(false);
+
+  async function handleExport() {
+    setIsExporting(true);
+    try {
+      await generateBoardReport();
+    } finally {
+      setIsExporting(false);
+    }
+  }
 
   useEffect(() => {
     fetchExecutiveMetrics()
@@ -77,6 +98,10 @@ export default function Home() {
         setReasoning(s.reasoning ?? "");
       })
       .catch(() => setSummary(""));
+
+    fetchDauSparkline().then(setDauSpark);
+    fetchArrSparkline().then(setArrSpark);
+    fetchMrrTrend().then(setTrendData);
   }, []);
 
   useEffect(() => {
@@ -94,7 +119,7 @@ export default function Home() {
           value: `$${metrics.mrr.toLocaleString()}`,
           desc: "Predictable recurring income stream",
           icon: DollarSign,
-          spark: [420, 520, 610, 680, 740, 880],
+          spark: trendData.map((d) => d.mrr),
           color: "#22d3ee",
         },
         {
@@ -102,7 +127,7 @@ export default function Home() {
           value: `$${metrics.arr.toLocaleString()}`,
           desc: "Projected yearly revenue at the current run-rate",
           icon: TrendingUp,
-          spark: [5040, 6240, 7320, 8160, 8880, 10560],
+          spark: arrSpark,
           color: "#6366f1",
         },
         {
@@ -110,7 +135,7 @@ export default function Home() {
           value: metrics.dau.toLocaleString(),
           desc: "Unique customers engaging with the product each day",
           icon: Users,
-          spark: [3, 5, 4, 6, 5, 7],
+          spark: dauSpark,
           color: "#34d399",
         },
       ]
@@ -155,18 +180,7 @@ export default function Home() {
             </div>
             <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
               <RiskTable />
-              <div className="glass-panel p-6">
-                <h3 className="mb-2 text-base font-semibold text-cyan-300">
-                  Reading the queue
-                </h3>
-                <p className="text-sm leading-relaxed text-slate-400">
-                  Each row is an account the churn model flagged as high risk,
-                  ranked by probability. Account age and session counts explain
-                  why it is slipping, and the Deploy Save Offer action launches a
-                  retention workflow, so the team can intervene before the
-                  subscription cancels.
-                </p>
-              </div>
+              <StrategyMatrix />
             </div>
           </section>
         );
@@ -304,7 +318,7 @@ export default function Home() {
       <div className="light-leak-cyan" />
       <div className="light-leak-indigo" />
       <div className="flex min-h-screen">
-      <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-white/10 bg-white/5 p-4 backdrop-blur-xl md:flex">
+      <aside className="z-50 hidden h-[calc(100vh-2rem)] w-64 shrink-0 sticky top-4 m-4 flex-col rounded-3xl border border-white/10 bg-white/5 p-4 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.7)] backdrop-blur-2xl md:flex">
         <div className="mb-6 flex items-center gap-2 px-2">
           <Sparkles className="h-6 w-6 text-cyan-400" />
           <span className="text-lg font-bold">ARGO</span>
@@ -326,7 +340,7 @@ export default function Home() {
                     onClick={() => setActiveTab(n.id)}
                     className={`flex items-center gap-3 rounded-xl border-l-2 px-3 py-2 text-sm transition-all ${
                       active
-                        ? "border-cyan-400 bg-white/10 text-white shadow-[0_0_14px_rgba(34,211,238,0.25)]"
+                        ? "bg-gradient-to-r from-cyan-500/20 to-transparent border-l-2 border-cyan-400 text-cyan-300 shadow-[inset_4px_0_10px_rgba(6,182,212,0.1)]"
                         : "border-transparent text-slate-400 hover:bg-white/5 hover:text-slate-200"
                     }`}
                   >
@@ -346,7 +360,7 @@ export default function Home() {
           </div>
         ))}
 
-        <div className="mt-auto flex items-center gap-3 border-t border-white/10 px-2 pt-4">
+        <div className="mt-auto flex items-center gap-3 border-t border-white/10 pt-4">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-cyan-400 text-sm font-bold text-white">
             A
           </div>
@@ -361,17 +375,36 @@ export default function Home() {
 
       <main className="flex-1 p-6 lg:p-8">
         <div className="mx-auto max-w-6xl">
-          <header className="mb-6">
-            <h1 className="text-3xl font-bold">ARGO Executive Command Suite</h1>
-            <p className="mt-1 max-w-3xl text-slate-400">
-              A product- and decision-intelligence platform that turns raw
-              customer events into governed revenue metrics, churn predictions,
-              and AI-generated strategy, so leaders can see what is happening and
-              decide what to do next.
-            </p>
+          <header className="mb-6 flex items-start justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold">ARGO Executive Command Suite</h1>
+              <p className="mt-1 max-w-3xl text-slate-400">
+                A product- and decision-intelligence platform that turns raw
+                customer events into governed revenue metrics, churn
+                predictions, and AI-generated strategy, so leaders can see what
+                is happening and decide what to do next.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleExport}
+              disabled={isExporting}
+              className={`inline-flex shrink-0 items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-400 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_0_20px_rgba(99,102,241,0.45)] transition-all hover:from-indigo-500 hover:to-indigo-300 hover:shadow-[0_0_28px_rgba(99,102,241,0.6)] ${
+                isExporting
+                  ? "animate-pulse cursor-not-allowed opacity-80"
+                  : ""
+              }`}
+            >
+              {isExporting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
+              {isExporting ? "Generating PDF..." : "Export Board Report (PDF)"}
+            </button>
           </header>
 
-          {renderWorkspace()}
+          <div id="argo-workspace">{renderWorkspace()}</div>
 
           <div className="mt-8">
             <TelemetryLog />
