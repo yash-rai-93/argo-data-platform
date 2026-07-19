@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Product- and decision-intelligence analytics platform (portfolio project)."
 requires-python = ">=3.12"
 dependencies = [
+    "duckdb>=1.5.4",
     "faker>=40.31.0",
     "fastapi>=0.139.2",
     "openai>=2.46.0",
@@ -12,6 +13,7 @@ dependencies = [
     "python-dotenv>=1.2.2",
     "requests>=2.34.2",
     "scikit-learn>=1.9.0",
+    "shap>=0.52.0",
     "uvicorn[standard]>=0.51.0",
     "xgboost>=3.3.0",
 ]
