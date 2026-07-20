@@ -20,28 +20,60 @@ def get_db() -> Iterator[duckdb.DuckDBPyConnection]:
 
 
 def fetch_executive_metrics(db: duckdb.DuckDBPyConnection) -> dict:
-    """Return MRR, ARR, and DAU, smoothed past the edge of the generated window.
+    """Return the headline GitHub cohort KPIs.
 
-    MRR and ARR use the second-to-last complete month; DAU is a 7-day trailing
-    average, both avoiding the partial final period.
+    All windows are anchored to max(created_at) in the warehouse, never
+    current_date: the archive extract is a fixed historical window, so wall
+    clock would return zeros.
     """
-    mrr, arr = db.execute(
+    active_contributors, pr_throughput, retention_rate = db.execute(
         """
-        select mrr, arr
-        from metric_mrr
-        where revenue_month = (
-            select max(revenue_month) from metric_mrr
-            where revenue_month < (select max(revenue_month) from metric_mrr)
+        with bounds as (
+            select max(created_at) as anchor from raw_github_events
+        ),
+
+        windows as (
+            select
+                anchor,
+                anchor - interval 30 day as current_start,
+                anchor - interval 60 day as prior_start,
+                anchor - interval 7 day as week_start
+            from bounds
+        ),
+
+        current_cohort as (
+            select distinct e.actor_login
+            from raw_github_events as e, windows as w
+            where e.created_at >= w.current_start
+        ),
+
+        prior_cohort as (
+            select distinct e.actor_login
+            from raw_github_events as e, windows as w
+            where e.created_at >= w.prior_start
+                and e.created_at < w.current_start
         )
+
+        select
+            (select count(*) from current_cohort) as active_contributors,
+            (
+                select count(*)
+                from raw_github_events as e, windows as w
+                where e.created_at >= w.week_start
+                    and e.event_category in ('pull_request', 'issue')
+            ) as pr_throughput,
+            coalesce(
+                (
+                    select count(*)
+                    from prior_cohort as p
+                    where p.actor_login in (select actor_login from current_cohort)
+                ) / nullif(cast((select count(*) from prior_cohort) as double), 0),
+                0
+            ) as retention_rate
         """
     ).fetchone()
-    (dau,) = db.execute(
-        """
-        select cast(avg(dau) as int)
-        from metric_active_users
-        where activity_date >= (
-            select max(activity_date) - interval 7 day from metric_active_users
-        )
-        """
-    ).fetchone()
-    return {"mrr": mrr, "arr": arr, "dau": dau}
+    return {
+        "active_contributors": int(active_contributors),
+        "pr_throughput": int(pr_throughput),
+        "retention_rate": float(retention_rate),
+    }

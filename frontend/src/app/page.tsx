@@ -5,10 +5,11 @@ import {
   Activity,
   Cpu,
   Database,
-  DollarSign,
   Download,
+  GitPullRequest,
   LayoutDashboard,
   Loader2,
+  Repeat,
   Settings,
   Sparkles,
   TrendingUp,
@@ -18,18 +19,19 @@ import { useEffect, useState } from "react";
 
 import ArgoBriefing from "@/components/ArgoBriefing";
 import ChurnWidget from "@/components/ChurnWidget";
+import GovernancePanel from "@/components/GovernancePanel";
 import PipelineLineage from "@/components/PipelineLineage";
 import RevenueChart from "@/components/RevenueChart";
 import RiskTable from "@/components/RiskTable";
 import Sparkline from "@/components/Sparkline";
-import StrategyMatrix from "@/components/StrategyMatrix";
 import TelemetryLog from "@/components/TelemetryLog";
 import {
-  fetchArrSparkline,
-  fetchDauSparkline,
+  fetchContributorTrend,
+  fetchContributorsSparkline,
   fetchExecutiveMetrics,
   fetchIntelligenceSummary,
-  fetchMrrTrend,
+  fetchRetentionSparkline,
+  fetchThroughputSparkline,
   type ExecutiveMetrics,
   type TrendMetric,
 } from "@/lib/api";
@@ -59,7 +61,7 @@ const SETTINGS = [
   { label: "Inference Model", value: "nvidia/nemotron-3-ultra-550b-a55b" },
   { label: "Churn Decision Threshold", value: "0.50" },
   { label: "Warehouse Engine", value: "DuckDB (dbt marts)" },
-  { label: "Data Mode", value: "Synthetic, seeded (reproducible)" },
+  { label: "Data Mode", value: "GitHub Archive via BigQuery (real events)" },
 ];
 
 export default function Home() {
@@ -70,8 +72,9 @@ export default function Home() {
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(true);
   const [ingest, setIngest] = useState<number>(1420);
-  const [dauSpark, setDauSpark] = useState<number[]>([]);
-  const [arrSpark, setArrSpark] = useState<number[]>([]);
+  const [contributorSpark, setContributorSpark] = useState<number[]>([]);
+  const [throughputSpark, setThroughputSpark] = useState<number[]>([]);
+  const [retentionSpark, setRetentionSpark] = useState<number[]>([]);
   const [trendData, setTrendData] = useState<TrendMetric[]>([]);
   const [isExporting, setIsExporting] = useState<boolean>(false);
 
@@ -99,217 +102,212 @@ export default function Home() {
       })
       .catch(() => setSummary(""));
 
-    fetchDauSparkline().then(setDauSpark);
-    fetchArrSparkline().then(setArrSpark);
-    fetchMrrTrend().then(setTrendData);
+    fetchContributorsSparkline().then(setContributorSpark);
+    fetchThroughputSparkline().then(setThroughputSpark);
+    fetchRetentionSparkline().then(setRetentionSpark);
+    fetchContributorTrend().then(setTrendData);
   }, []);
 
   useEffect(() => {
+    if (activeTab !== "command") return;
     const id = setInterval(
       () => setIngest(1380 + Math.floor(Math.random() * 120)),
       1500,
     );
     return () => clearInterval(id);
-  }, []);
+  }, [activeTab]);
 
   const cards = metrics
     ? [
         {
-          label: "Monthly Revenue (MRR)",
-          value: `$${metrics.mrr.toLocaleString()}`,
-          desc: "Predictable recurring income stream",
-          icon: DollarSign,
-          spark: trendData.map((d) => d.mrr),
+          label: "Active Contributors (30d)",
+          value: metrics.active_contributors.toLocaleString(),
+          desc: "Unique non-bot humans who touched the cohort in 30 days",
+          icon: Users,
+          spark: contributorSpark,
           color: "#22d3ee",
         },
         {
-          label: "Annualized Growth Run-rate (ARR)",
-          value: `$${metrics.arr.toLocaleString()}`,
-          desc: "Projected yearly revenue at the current run-rate",
-          icon: TrendingUp,
-          spark: arrSpark,
+          label: "PR & Issue Throughput (7d)",
+          value: metrics.pr_throughput.toLocaleString(),
+          desc: "Pull request and issue events shipped in the trailing week",
+          icon: GitPullRequest,
+          spark: throughputSpark,
           color: "#6366f1",
         },
         {
-          label: "Daily Active Customers (DAU)",
-          value: metrics.dau.toLocaleString(),
-          desc: "Unique customers engaging with the product each day",
-          icon: Users,
-          spark: dauSpark,
+          label: "Contributor Retention (30d)",
+          value: `${(metrics.retention_rate * 100).toFixed(1)}%`,
+          desc: "Share of the prior 30-day cohort still active in the current one",
+          icon: Repeat,
+          spark: retentionSpark,
           color: "#34d399",
         },
       ]
     : [];
 
+  function renderCommandSuite() {
+    return (
+      <section className="space-y-8">
+        <div className="glass-panel flex flex-wrap items-center gap-x-8 gap-y-3 px-6 py-4 text-sm">
+          <span className="flex items-center gap-2">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400" />
+            </span>
+            <span className="font-medium text-slate-300">
+              System Health &amp; Data Ingestion Pipeline
+            </span>
+          </span>
+          <span className="flex items-center gap-2 text-slate-400">
+            <Activity className="h-4 w-4 text-emerald-400" />
+            Pipeline: <span className="text-emerald-300">Operational</span>
+          </span>
+          <span className="flex items-center gap-2 text-slate-400">
+            <TrendingUp className="h-4 w-4 text-cyan-400" />
+            Ingestion:{" "}
+            <span className="font-mono text-cyan-300">
+              {ingest.toLocaleString()} events/sec
+            </span>
+          </span>
+          <span className="flex items-center gap-2 text-slate-400">
+            <Database className="h-4 w-4 text-indigo-400" />
+            Warehouse Nodes: <span className="text-indigo-300">Active</span>
+          </span>
+        </div>
+
+        {error && (
+          <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-4 text-red-300">
+            {error}
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+          {loading
+            ? Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="glass-panel h-36 animate-pulse" />
+              ))
+            : cards.map((c) => {
+                const Icon = c.icon;
+                return (
+                  <motion.div
+                    key={c.label}
+                    whileHover={{ y: -5 }}
+                    className="glass-panel p-6"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-slate-300">
+                        {c.label}
+                      </span>
+                      <Icon className="h-5 w-5 shrink-0 text-indigo-400" />
+                    </div>
+                    <p className="mt-4 font-mono text-3xl font-semibold">
+                      {c.value}
+                    </p>
+                    <div className="mt-3">
+                      <Sparkline data={c.spark} color={c.color} />
+                    </div>
+                    <p className="mt-2 text-xs text-slate-500">{c.desc}</p>
+                  </motion.div>
+                );
+              })}
+        </div>
+
+        <RevenueChart />
+
+        <ArgoBriefing />
+
+        <section className="glass-panel p-6">
+          <div className="mb-3 flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-indigo-400" />
+            <h2 className="text-lg font-semibold">AI Intelligence Summary</h2>
+          </div>
+          {loading ? (
+            <div className="h-16 animate-pulse rounded bg-white/10" />
+          ) : (
+            <>
+              <p className="leading-relaxed text-slate-300">
+                {summary ||
+                  "Summary unavailable (requires a configured API key)."}
+              </p>
+              {reasoning && (
+                <p className="mt-3 border-t border-white/10 pt-3 text-xs leading-relaxed text-slate-500">
+                  {reasoning}
+                </p>
+              )}
+            </>
+          )}
+        </section>
+      </section>
+    );
+  }
+
+  function renderRetention() {
+    return (
+      <section className="space-y-6">
+        <div>
+          <h2 className="text-xl font-semibold">Retention Command Queue</h2>
+          <p className="text-sm text-slate-400">
+            Contributors flagged by the churn model, ranked by predicted risk,
+            with a live simulator for probing any behavioural vector.
+          </p>
+        </div>
+        <RiskTable />
+        <ChurnWidget />
+      </section>
+    );
+  }
+
+  function renderMlEngine() {
+    return (
+      <section className="space-y-6">
+        <div>
+          <h2 className="text-xl font-semibold">ML Engine</h2>
+          <p className="text-sm text-slate-400">
+            Warehouse lineage, model attribution, and the live event stream
+            feeding the XGBoost churn classifier.
+          </p>
+        </div>
+        <PipelineLineage />
+        <TelemetryLog />
+      </section>
+    );
+  }
+
+  function renderSettings() {
+    return (
+      <section className="space-y-6">
+        <GovernancePanel />
+        <div className="glass-panel p-6">
+          <h2 className="mb-4 text-xl font-semibold">Platform Parameters</h2>
+          <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {SETTINGS.map((s) => (
+              <div
+                key={s.label}
+                className="rounded-xl border border-slate-800/60 bg-slate-950/40 p-4"
+              >
+                <dt className="text-xs text-slate-500">{s.label}</dt>
+                <dd className="mt-1 font-mono text-sm text-slate-200">
+                  {s.value}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </section>
+    );
+  }
+
   function renderWorkspace() {
     switch (activeTab) {
       case "ml":
-        return (
-          <section className="space-y-6">
-            <div>
-              <h2 className="text-xl font-semibold">Advanced Model Playground</h2>
-              <p className="text-sm text-slate-400">
-                Probe the XGBoost churn engine with custom or preset behavioral
-                vectors and watch it discriminate risk in real time.
-              </p>
-            </div>
-            <ChurnWidget />
-            <div className="glass-panel p-6">
-              <h3 className="mb-2 text-base font-semibold text-cyan-300">
-                How the model works
-              </h3>
-              <p className="text-sm leading-relaxed text-slate-400">
-                The machine learning model analyzes session volume and account
-                age to identify patterns of abandonment. Accounts with few recent
-                sessions but long tenure resemble past customers who quietly
-                lapsed, so the model assigns them a higher churn probability,
-                turning raw behavior into an early-warning signal.
-              </p>
-            </div>
-          </section>
-        );
+        return renderMlEngine();
       case "retention":
-        return (
-          <section className="space-y-4">
-            <div>
-              <h2 className="text-xl font-semibold">Retention Command Queue</h2>
-              <p className="text-sm text-slate-400">
-                High-density queue of accounts flagged by the churn model, ranked
-                by predicted risk and ready for a save motion.
-              </p>
-            </div>
-            <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-              <RiskTable />
-              <StrategyMatrix />
-            </div>
-          </section>
-        );
+        return renderRetention();
       case "settings":
-        return (
-          <section className="glass-panel p-6">
-            <h2 className="mb-4 text-xl font-semibold">Platform Parameters</h2>
-            <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {SETTINGS.map((s) => (
-                <div
-                  key={s.label}
-                  className="rounded-xl border border-slate-800/60 bg-slate-950/40 p-4"
-                >
-                  <dt className="text-xs text-slate-500">{s.label}</dt>
-                  <dd className="mt-1 font-mono text-sm text-slate-200">
-                    {s.value}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          </section>
-        );
+        return renderSettings();
       default:
-        return (
-          <>
-            <div className="glass-panel mb-8 flex flex-wrap items-center gap-x-8 gap-y-3 px-6 py-4 text-sm">
-              <span className="flex items-center gap-2">
-                <span className="relative flex h-2.5 w-2.5">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
-                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400" />
-                </span>
-                <span className="font-medium text-slate-300">
-                  System Health &amp; Data Ingestion Pipeline
-                </span>
-              </span>
-              <span className="flex items-center gap-2 text-slate-400">
-                <Activity className="h-4 w-4 text-emerald-400" />
-                Pipeline: <span className="text-emerald-300">Operational</span>
-              </span>
-              <span className="flex items-center gap-2 text-slate-400">
-                <TrendingUp className="h-4 w-4 text-cyan-400" />
-                Ingestion:{" "}
-                <span className="font-mono text-cyan-300">
-                  {ingest.toLocaleString()} events/sec
-                </span>
-              </span>
-              <span className="flex items-center gap-2 text-slate-400">
-                <Database className="h-4 w-4 text-indigo-400" />
-                Warehouse Nodes: <span className="text-indigo-300">Active</span>
-              </span>
-            </div>
-
-            <div className="mb-8">
-              <ArgoBriefing />
-            </div>
-
-            <div className="mb-8">
-              <PipelineLineage />
-            </div>
-
-            {error && (
-              <div className="mb-6 rounded-lg border border-red-500/40 bg-red-500/10 p-4 text-red-300">
-                {error}
-              </div>
-            )}
-
-            <section className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-3">
-              {loading
-                ? Array.from({ length: 3 }).map((_, i) => (
-                    <div key={i} className="glass-panel h-36 animate-pulse" />
-                  ))
-                : cards.map((c) => {
-                    const Icon = c.icon;
-                    return (
-                      <motion.div
-                        key={c.label}
-                        whileHover={{ y: -5 }}
-                        className="glass-panel p-6"
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium text-slate-300">
-                            {c.label}
-                          </span>
-                          <Icon className="h-5 w-5 shrink-0 text-indigo-400" />
-                        </div>
-                        <p className="mt-4 font-mono text-3xl font-semibold">
-                          {c.value}
-                        </p>
-                        <div className="mt-3">
-                          <Sparkline data={c.spark} color={c.color} />
-                        </div>
-                        <p className="mt-2 text-xs text-slate-500">{c.desc}</p>
-                      </motion.div>
-                    );
-                  })}
-            </section>
-
-            <div className="mb-8">
-              <RevenueChart />
-            </div>
-
-            <section className="glass-panel mb-8 p-6">
-              <div className="mb-3 flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-indigo-400" />
-                <h2 className="text-lg font-semibold">AI Intelligence Summary</h2>
-              </div>
-              {loading ? (
-                <div className="h-16 animate-pulse rounded bg-white/10" />
-              ) : (
-                <>
-                  <p className="leading-relaxed text-slate-300">
-                    {summary ||
-                      "Summary unavailable (requires a configured API key)."}
-                  </p>
-                  {reasoning && (
-                    <p className="mt-3 border-t border-white/10 pt-3 text-xs leading-relaxed text-slate-500">
-                      {reasoning}
-                    </p>
-                  )}
-                </>
-              )}
-            </section>
-
-            <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-              <RiskTable />
-              <ChurnWidget />
-            </section>
-          </>
-        );
+        return renderCommandSuite();
     }
   }
 
@@ -405,10 +403,6 @@ export default function Home() {
           </header>
 
           <div id="argo-workspace">{renderWorkspace()}</div>
-
-          <div className="mt-8">
-            <TelemetryLog />
-          </div>
         </div>
       </main>
       </div>

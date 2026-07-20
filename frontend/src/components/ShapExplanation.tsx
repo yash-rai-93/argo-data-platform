@@ -2,17 +2,20 @@
 
 import { Info } from "lucide-react";
 
-// Per-prediction SHAP attributions supplied by the churn endpoint.
-type ShapItem = { feature: string; impact: number };
+import type { ShapAttribution } from "@/lib/api";
 
 const TOOLTIP =
   "SHAP values isolate the exact mathematical impact of each customer behavior on the final XGBoost prediction.";
 
-export default function ShapExplanation({ data }: { data?: ShapItem[] }) {
-  const items = data ?? [];
+export default function ShapExplanation({
+  data,
+}: {
+  data?: ShapAttribution[];
+}) {
+  const items: ShapAttribution[] = data ?? [];
   // Scale bar widths relative to the strongest attribution in the payload.
   const max = items.length
-    ? Math.max(...items.map((f) => Math.abs(f.impact)))
+    ? Math.max(...items.map((f) => Math.abs(f.contribution)))
     : 1;
 
   return (
@@ -36,8 +39,8 @@ export default function ShapExplanation({ data }: { data?: ShapItem[] }) {
       ) : (
         <div className="space-y-3">
           {items.map((f) => {
-            const up = f.impact >= 0;
-            const width = `${(Math.abs(f.impact) / max) * 100}%`;
+            const up = f.contribution >= 0;
+            const width = `${(Math.abs(f.contribution) / max) * 100}%`;
             return (
               <div key={f.feature} className="flex items-center gap-3">
                 <span className="w-44 shrink-0 truncate font-mono text-xs text-slate-400">
@@ -58,7 +61,7 @@ export default function ShapExplanation({ data }: { data?: ShapItem[] }) {
                       }`}
                     >
                       {up ? "+" : "-"}
-                      {Math.abs(f.impact).toFixed(2)}
+                      {Math.abs(f.contribution).toFixed(2)}
                     </span>
                   </div>
                 </div>

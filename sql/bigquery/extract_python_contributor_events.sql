@@ -5,8 +5,11 @@
 --          modelling across the top Python open-source projects.
 --
 -- Cost control (why this query is cheap despite a huge source):
---   * `_TABLE_SUFFIX` prunes the day-partitioned wildcard so BigQuery only
---     scans the chosen date window, not the whole 2011->today history.
+--   * The wildcard is anchored to a year prefix (`day.2023*`) so the candidate
+--     set is one year of daily tables, not the whole 2011->today history.
+--     Anchoring the prefix also excludes the dataset's logical views
+--     (`yesterday`, `today`), whose schema mismatch triggers a 400 BadRequest.
+--   * `_TABLE_SUFFIX` then prunes to 184 days inside that year.
 --   * Only five small columns are read. The large `payload` JSON is never
 --     touched, which is what keeps bytes-scanned (and cost) low.
 --   * A curated repo allow-list keeps the cohort focused and defensible.
@@ -51,9 +54,11 @@ scoped as (
         actor.login as actor_login,
         repo.name as repo_name,
         created_at
-    from `githubarchive.day.*`
-    -- Change these two YYYYMMDD dates to move the analysis window.
-    where _table_suffix between '20230701' and '20231231'
+    from `githubarchive.day.2023*`
+    -- Suffix is MMDD, because the year is fixed in the wildcard prefix above.
+    -- This span covers both the dbt observation window [2023-07-01, 2023-11-01)
+    -- and the target window [2023-11-01, 2024-01-01).
+    where _table_suffix between '0701' and '1231'
         and type in (
             'PushEvent',
             'PullRequestEvent',

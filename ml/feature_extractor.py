@@ -1,86 +1,114 @@
-"""Churn feature extraction from the DuckDB warehouse."""
+"""Contributor-churn feature schema and warehouse extraction.
+
+Defines the canonical feature contract shared by training, evaluation, and
+serving so the three can never drift apart. Rows are read from the dbt model
+``ml_contributor_churn_training``, which already applies the leakage-free
+observation/target window split, so no windowing is repeated here.
+"""
 
 from __future__ import annotations
 
-import os
-from collections.abc import Iterator
-from contextlib import contextmanager
+import warnings
 from pathlib import Path
+from typing import Final
 
 import duckdb
 import pandas as pd
 
-_TRANSFORM_DIR = Path(__file__).resolve().parents[1] / "transform"
-_DB_PATH = _TRANSFORM_DIR / "argo.duckdb"
+_ROOT: Final[Path] = Path(__file__).resolve().parents[1]
+_DB_PATH: Final[Path] = _ROOT / "transform" / "argo.duckdb"
+_TRAINING_TABLE: Final[str] = "ml_contributor_churn_training"
+_PAD_VALUE: Final[float] = 0.0
+
+FEATURE_COLUMNS: Final[list[str]] = [
+    "total_events",
+    "distinct_repos",
+    "active_days",
+    "commit_events",
+    "pull_request_events",
+    "issue_events",
+    "comment_events",
+    "engagement_events",
+    "release_events",
+    "weekend_ratio",
+    "events_per_active_day",
+    "tenure_days",
+    "days_since_last_event",
+    "velocity_30d",
+    "deceleration_score",
+    "deceleration_ratio",
+]
+
+TARGET_COLUMN: Final[str] = "is_churned"
+
+FEATURE_LABELS: Final[dict[str, str]] = {
+    "total_events": "Total Events",
+    "distinct_repos": "Distinct Repos",
+    "active_days": "Active Days",
+    "commit_events": "Commit Events",
+    "pull_request_events": "Pull Request Events",
+    "issue_events": "Issue Events",
+    "comment_events": "Comment Events",
+    "engagement_events": "Engagement Events",
+    "release_events": "Release Events",
+    "weekend_ratio": "Weekend Ratio",
+    "events_per_active_day": "Events per Active Day",
+    "tenure_days": "Tenure (days)",
+    "days_since_last_event": "Days Since Last Event",
+    "velocity_30d": "30-Day Velocity",
+    "deceleration_score": "Deceleration (raw)",
+    "deceleration_ratio": "Deceleration (normalised)",
+}
 
 
-@contextmanager
-def _working_dir(path: Path) -> Iterator[None]:
-    """Run inside ``path`` so DuckDB views resolve their relative source paths."""
-    previous = Path.cwd()
-    os.chdir(path)
-    try:
-        yield
-    finally:
-        os.chdir(previous)
+def enforce_schema(frame: pd.DataFrame) -> pd.DataFrame:
+    """Project a frame onto the canonical contract, padding what is absent.
+
+    Missing features are inserted as ``0.0`` and the result is reindexed to
+    ``FEATURE_COLUMNS`` order, so a training matrix and an inference row are
+    positionally identical no matter how their sources were assembled. Padding
+    is warned about rather than raised on, because a silently reordered or
+    dropped column is the failure mode this function exists to prevent, but a
+    genuinely absent one should still be visible in logs.
+    """
+    missing: list[str] = [column for column in FEATURE_COLUMNS if column not in frame.columns]
+    if missing:
+        warnings.warn(
+            f"Padding {len(missing)} absent feature(s) with {_PAD_VALUE}: {', '.join(missing)}",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+        frame = frame.copy()
+        for column in missing:
+            frame[column] = _PAD_VALUE
+
+    return frame.reindex(columns=FEATURE_COLUMNS).astype("float64")
 
 
 class ChurnFeatureExtractor:
-    """Builds a per-user churn training frame from the warehouse marts."""
+    """Reads contributor-churn training rows from the DuckDB warehouse."""
 
-    def __init__(self, db_path: Path = _DB_PATH) -> None:
-        self.db_path = db_path
+    def __init__(self, db_path: Path | None = None) -> None:
+        self.db_path: Path = db_path or _DB_PATH
 
     def extract_features(self) -> pd.DataFrame:
-        """Return per-user features and a leakage-free ``is_churned`` target.
+        """Return the training frame: the 16 features plus the churn target."""
+        columns: str = ", ".join([*FEATURE_COLUMNS, TARGET_COLUMN])
+        connection = duckdb.connect(str(self.db_path), read_only=True)
+        try:
+            frame: pd.DataFrame = connection.execute(
+                f"select {columns} from {_TRAINING_TABLE}"
+            ).fetch_df()
+        finally:
+            connection.close()
 
-        Features are drawn from the observation window (sessions before a cutoff
-        30 days short of the data's end). A user is churned when they have no
-        sessions in the 30-day label window that follows the cutoff.
-        """
-        query = """
-            with bounds as (
-                select max(event_timestamp) - interval '30 days' as cutoff_date
-                from stg_events
-            ),
-
-            population as (
-                select u.user_id, u.first_seen_at
-                from dim_users as u, bounds as b
-                where u.first_seen_at < b.cutoff_date
-            ),
-
-            pre_sessions as (
-                select
-                    s.user_id,
-                    count(*) as total_sessions,
-                    avg(s.duration_seconds) as avg_session_duration
-                from int_sessions as s, bounds as b
-                where s.session_start_at < b.cutoff_date
-                group by s.user_id
-            ),
-
-            post_sessions as (
-                select distinct s.user_id
-                from int_sessions as s, bounds as b
-                where s.session_start_at >= b.cutoff_date
-                    and s.session_start_at < b.cutoff_date + interval '30 days'
+        if frame.empty:
+            raise ValueError(
+                f"{_TRAINING_TABLE} is empty; run etl/land_github_data.py and 'dbt build' first."
             )
+        return frame
 
-            select
-                p.user_id,
-                coalesce(pre.total_sessions, 0) as total_sessions,
-                coalesce(pre.avg_session_duration, 0) as avg_session_duration,
-                date_diff('day', p.first_seen_at, b.cutoff_date) as account_age_days,
-                case when post.user_id is null then 1 else 0 end as is_churned
-            from population as p
-            cross join bounds as b
-            left join pre_sessions as pre on p.user_id = pre.user_id
-            left join post_sessions as post on p.user_id = post.user_id
-        """
-        with _working_dir(self.db_path.parent):
-            con = duckdb.connect(str(self.db_path))
-            try:
-                return con.execute(query).df()
-            finally:
-                con.close()
+    def extract_matrix(self) -> tuple[pd.DataFrame, pd.Series]:
+        """Return the schema-enforced feature matrix and the target vector."""
+        frame: pd.DataFrame = self.extract_features()
+        return enforce_schema(frame), frame[TARGET_COLUMN]
