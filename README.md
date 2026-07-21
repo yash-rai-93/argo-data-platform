@@ -2,8 +2,7 @@
 
 **Predicts *when* an open-source contributor will go quiet, from 547,434 real GitHub Archive events across 24 production Python repositories.**
 
-> **Live dashboard:** `<VERCEL_URL>` · **API docs:** `<CLOUD_RUN_URL>/docs`
-> *Placeholders — nothing is deployed yet. Replace both once the first Cloud Run revision and Vercel build are live. See [Deployment](#deployment).*
+> **[Live dashboard](https://argo-lake-phi.vercel.app)** · **[API docs](https://argo-ak57.onrender.com/docs)**
 
 | | |
 | --- | --- |
@@ -52,7 +51,7 @@ flowchart LR
         COX --> SHAP
     end
 
-    subgraph SERVE["Serving — Cloud Run, scale-to-zero"]
+    subgraph SERVE["Serving — Render, free tier"]
         API["FastAPI · 14 endpoints<br/>lifespan warm-up<br/>import-time drift assertion"]
         BRES["Breslow baseline<br/>cached at startup"]
         API --- BRES
@@ -163,7 +162,7 @@ Both timings are measured on this warehouse: a six-column grouped aggregate with
 
 **When this flips:** the moment a write path appears — annotations, feedback loops, multi-tenant state. The answer then is Postgres for the OLTP surface *alongside* the columnar store, not migrating analytics into an engine that is bad at it.
 
-### 2. Split hosting — Vercel edge for UI, Cloud Run for the ML container
+### 2. Split hosting — Vercel edge for UI, Render for the ML container
 
 Two workloads with opposite resource profiles. Co-locating them means paying the worse of both.
 
@@ -176,7 +175,7 @@ Two workloads with opposite resource profiles. Co-locating them means paying the
 
 Putting the dashboard behind the ML container makes every static asset wait on a container that scales to zero. Putting the model on Vercel is not possible — serverless functions cap well below a 2.5GB image with `xgboost`, `shap`, and `scikit-survival` resident.
 
-The seam is one environment variable. `NEXT_PUBLIC_API_URL` points the client at Cloud Run; CORS allows all origins because Vercel mints a fresh preview domain per deployment, so the list cannot be enumerated. `allow_credentials` stays **False** — the client sends no cookies and no `Authorization` header, and enabling it alongside a wildcard makes Starlette echo the caller's own origin, letting any site issue credentialed requests for no gain.
+The seam is one environment variable. `NEXT_PUBLIC_API_URL` points the client at Render; CORS allows all origins because Vercel mints a fresh preview domain per deployment, so the list cannot be enumerated. `allow_credentials` stays **False** — the client sends no cookies and no `Authorization` header, and enabling it alongside a wildcard makes Starlette echo the caller's own origin, letting any site issue credentialed requests for no gain.
 
 The cost is a cold start on the first request after idle. Rather than hide it, the dashboard names it: `ColdStartNotice` stays generic for three seconds, then explains the scale-to-zero tradeoff with an elapsed counter.
 
@@ -191,7 +190,7 @@ after lifespan warm-up   223 MiB
 peak, all 14 endpoints   229 MiB
 ```
 
-So Cloud Run runs at `--memory 1Gi` — roughly 4× headroom — not the 2Gi the image size suggests. Cloud Run bills GiB-seconds; over-provisioning burns the free tier for nothing.
+**This is what makes a 512MB free tier viable.** Sizing from the image would have ruled Render out on sight and pushed the service onto paid infrastructure it does not need. 229MiB against a 512MB ceiling is a little over 2× headroom — comfortable, and only knowable by measuring.
 
 Disk was attacked separately, and two defects were found by *building* rather than reasoning:
 
@@ -326,22 +325,24 @@ uv run python -m ml.decompose_activity         # STL anomalies
 
 ## Deployment
 
-| Layer | Platform | Trigger |
+Both layers deploy from this repository on every push to `main`. Neither needs a CI pipeline of its own — the platforms watch GitHub directly.
+
+| Layer | Platform | Configuration |
 | --- | --- | --- |
-| API | Cloud Run · `--memory 1Gi --cpu 1 --min-instances 0` | `.github/workflows/deploy-cloudrun.yml` on push to `main` |
-| Dashboard | Vercel · root directory `frontend` | Vercel GitHub integration |
+| API | [Render](https://argo-ak57.onrender.com) · Docker · Free tier, 512MB | Native GitHub integration, builds the root `Dockerfile` |
+| Dashboard | [Vercel](https://argo-lake-phi.vercel.app) · Next.js | Native GitHub integration, root directory `frontend` |
 
-**Required configuration.** GitHub → Settings → Secrets and variables → Actions:
+**Render** builds the `Dockerfile` at the repository root with no additional configuration. The image is fully self-contained: the DuckDB warehouse and both trained boosters are committed, so there is no build-time extraction, no training step, and no credentials required. `PORT` is injected by the platform and honoured by the container's `CMD`, which falls back to `7860` locally.
 
-| Type | Name |
-| --- | --- |
-| Secret | `GCP_SA_KEY` |
-| Variable | `GCP_PROJECT_ID` |
-| Variable | `GCP_REGION` *(optional, defaults `us-central1`)* |
+**Vercel** needs one environment variable:
 
-Vercel → Environment Variables: `NEXT_PUBLIC_API_URL` = the Cloud Run URL, applied to Production, Preview, and Development. It is inlined at build time, so changing it requires a redeploy.
+| Name | Value | Environments |
+| --- | --- | --- |
+| `NEXT_PUBLIC_API_URL` | `https://argo-ak57.onrender.com` | Production, Preview, Development |
 
-The deploy workflow smoke-tests the live revision (`/health`, `/metrics/executive`, `/predict/registry`) and fails the run on any non-200, so a broken deploy shows red rather than sitting silently.
+It is inlined at build time, so changing it requires a redeploy rather than a restart.
+
+**The free tier sleeps after inactivity.** The first request after an idle period pays a cold start while the container boots, loads two boosters, and computes the Breslow baseline. The dashboard surfaces this rather than hiding it — see `ColdStartNotice`.
 
 ---
 
@@ -424,7 +425,7 @@ tests/             Schema-parity contract tests
 - **Two models serve one dashboard.** The threshold simulator is probability-based, the triage queue hazard-based. Both honest; the coexistence is not yet explained in the UI.
 - **`metric_activity_decomposition` is written by Python, not dbt.** `dbt build` will not rebuild it.
 - **CI lints and runs contract tests only.** The dbt leakage test needs a real warehouse and runs locally; synthesising a fixture to make it green would defeat its purpose.
-- **Cold-start duration is estimated, not measured.** The dashboard states ~40s as a ceiling. Tune `COLD_START_BODY` once a real Cloud Run cold start is observed.
+- **Cold-start duration is estimated, not measured.** The dashboard states ~40s as a ceiling. Tune `COLD_START_BODY` once a real Render cold start is observed.
 
 ---
 
