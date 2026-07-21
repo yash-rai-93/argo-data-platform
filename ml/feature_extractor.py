@@ -40,6 +40,20 @@ FEATURE_COLUMNS: Final[list[str]] = [
 ]
 
 TARGET_COLUMN: Final[str] = "is_churned"
+"""Binary label for the deployed XGBClassifier."""
+
+TARGET_COLUMNS: Final[list[str]] = ["duration", "event"]
+"""Survival targets.
+
+``duration`` is days under observation from a contributor's first event until
+they lapsed or until the study cutoff censored them. ``event`` is 1 for an
+observed lapse and 0 for right-censoring.
+
+These are emitted by the same dbt mart as ``is_churned`` and are consumed by a
+survival model (``survival:cox`` / ``survival:aft``), which predicts a hazard
+or an expected time-to-lapse rather than a probability. Nothing in the serving
+path reads them yet.
+"""
 
 FEATURE_LABELS: Final[dict[str, str]] = {
     "total_events": "Total Events",

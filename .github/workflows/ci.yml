@@ -29,29 +29,14 @@ jobs:
       - name: Lint
         run: uv run ruff check .
 
+      # Contract tests only. They import the router and the feature schema and
+      # touch no warehouse, so they run without credentials or argo.duckdb.
       - name: Test
         run: uv run pytest -v
 
-      # Raw data is git-ignored, so synthesize a small deterministic feed for the
-      # dbt models to read.
-      - name: Generate sample data
-        run: uv run argo-gen --users 200 --days 60 --seed 42
-
-      # SQLFluff's dbt templater must run from the dbt project root.
-      - name: SQL lint
-        working-directory: transform
-        run: uv run sqlfluff lint models/
-
-      # Build the warehouse first so training has dim_users / int_sessions to read.
-      - name: dbt build warehouse
-        working-directory: transform
-        run: uv run dbt build --exclude ml_churn_scores --profiles-dir .
-
-      # Train the churn model so the artifact exists for the ml_churn_scores model.
-      - name: Train churn model
-        run: uv run python ml/train_churn.py
-
-      # Now build and test the Python scoring model against the fresh artifact.
-      - name: dbt build churn scores
-        working-directory: transform
-        run: uv run dbt build --select ml_churn_scores --profiles-dir .
+      # The dbt leakage test is deliberately absent. It must run against a real
+      # warehouse, which is built from the GitHub Archive BigQuery extract using
+      # credentials CI does not have, and transform/argo.duckdb is git-ignored.
+      # Run it locally with:
+      #   cd transform && uv run dbt test --profiles-dir .
+      # Faking a feed to make this step green would assert something untrue.

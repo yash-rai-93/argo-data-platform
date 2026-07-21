@@ -58,7 +58,7 @@ export default function GovernancePanel() {
     <section className="glass-panel p-6">
       <div className="mb-1 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <Database className="h-5 w-5 text-cyan-400" />
+          <Database className="h-5 w-5 text-red-500" />
           <h2 className="text-xl font-semibold">Data Governance</h2>
         </div>
         <span

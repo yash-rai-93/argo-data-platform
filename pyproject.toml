@@ -5,11 +5,9 @@ description = "Product- and decision-intelligence analytics platform (portfolio 
 requires-python = ">=3.12"
 dependencies = [
     "duckdb>=1.5.4",
-    "faker>=40.31.0",
     "fastapi>=0.139.2",
     "google-cloud-bigquery>=3.42.2",
     "google-cloud-bigquery-storage>=2.39.0",
-    "imbalanced-learn>=0.14.2",
     "matplotlib>=3.11.1",
     "openai>=2.46.0",
     "pandas>=3.0.3",
@@ -18,22 +16,18 @@ dependencies = [
     "python-dotenv>=1.2.2",
     "requests>=2.34.2",
     "scikit-learn>=1.9.0",
+    "scikit-survival>=0.28.0",
     "shap>=0.52.0",
     "statsmodels>=0.14.6",
     "uvicorn[standard]>=0.51.0",
     "xgboost>=3.3.0",
 ]
 
-# Console entry point for the synthetic-event generator.
-[project.scripts]
-argo-gen = "generator.cli:main"
-
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
-[tool.hatch.build.targets.wheel]
-packages = ["generator"]
+# Argo is an application, not a distributable library: api/, ml/, and etl/ are
+# run in place from the repo root. Declaring no build backend keeps `uv sync`
+# from trying to build a wheel that nothing installs.
+[tool.uv]
+package = false
 
 # Development toolchain. Pinned floors here; exact versions live in uv.lock.
 [dependency-groups]
@@ -58,3 +52,6 @@ select = ["E", "F", "I", "B", "UP", "C4"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+# pytest prepends the test file's own directory, not the repo root, so without
+# this `import api...` fails from inside tests/.
+pythonpath = ["."]

@@ -6,6 +6,7 @@ import {
   Cpu,
   Database,
   Download,
+  ExternalLink,
   GitPullRequest,
   LayoutDashboard,
   Loader2,
@@ -20,20 +21,20 @@ import { useEffect, useState } from "react";
 import ArgoBriefing from "@/components/ArgoBriefing";
 import ChurnWidget from "@/components/ChurnWidget";
 import GovernancePanel from "@/components/GovernancePanel";
+import ModelRegistry from "@/components/ModelRegistry";
 import PipelineLineage from "@/components/PipelineLineage";
+import PlatformSpec from "@/components/PlatformSpec";
 import RevenueChart from "@/components/RevenueChart";
 import RiskTable from "@/components/RiskTable";
 import Sparkline from "@/components/Sparkline";
 import TelemetryLog from "@/components/TelemetryLog";
 import {
-  fetchContributorTrend,
   fetchContributorsSparkline,
   fetchExecutiveMetrics,
   fetchIntelligenceSummary,
   fetchRetentionSparkline,
   fetchThroughputSparkline,
   type ExecutiveMetrics,
-  type TrendMetric,
 } from "@/lib/api";
 import { generateBoardReport } from "@/lib/pdfReport";
 
@@ -56,13 +57,41 @@ const NAV_GROUPS = [
 
 type TabId = (typeof NAV_GROUPS)[number]["items"][number]["id"];
 
-const SETTINGS = [
-  { label: "API Base URL", value: "http://127.0.0.1:8000/api/v1" },
-  { label: "Inference Model", value: "nvidia/nemotron-3-ultra-550b-a55b" },
-  { label: "Churn Decision Threshold", value: "0.50" },
-  { label: "Warehouse Engine", value: "DuckDB (dbt marts)" },
-  { label: "Data Mode", value: "GitHub Archive via BigQuery (real events)" },
-];
+// Per-tab heading copy plus whether the PDF export applies. Export only makes
+// sense where the workspace holds a reviewable artefact: the retention queue
+// and the model registry. On the overview and the settings spec it would just
+// screenshot configuration.
+const TABS: Record<
+  TabId,
+  { title: string; blurb: string; exportable: boolean }
+> = {
+  command: {
+    title: "Command Suite",
+    blurb:
+      "Cohort health across 24 Python repositories: who is contributing, how much is shipping, and how much of last month's cohort came back.",
+    exportable: false,
+  },
+  ml: {
+    title: "ML Engine",
+    blurb:
+      "Training history, measured metric drift, warehouse lineage, and the live event stream feeding the XGBoost churn classifier.",
+    exportable: true,
+  },
+  retention: {
+    title: "Retention Command Queue",
+    blurb:
+      "High-value contributors ranked by live churn score, with a threshold simulator swept against the temporal holdout.",
+    exportable: true,
+  },
+  settings: {
+    title: "Platform & Governance",
+    blurb:
+      "dbt build health, schema test results, data freshness, and the full specification of the model currently serving predictions.",
+    exportable: false,
+  },
+};
+
+const PORTFOLIO_URL = "https://aarushch.github.io/Portfolio/";
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<TabId>("command");
@@ -75,7 +104,6 @@ export default function Home() {
   const [contributorSpark, setContributorSpark] = useState<number[]>([]);
   const [throughputSpark, setThroughputSpark] = useState<number[]>([]);
   const [retentionSpark, setRetentionSpark] = useState<number[]>([]);
-  const [trendData, setTrendData] = useState<TrendMetric[]>([]);
   const [isExporting, setIsExporting] = useState<boolean>(false);
 
   async function handleExport() {
@@ -105,7 +133,6 @@ export default function Home() {
     fetchContributorsSparkline().then(setContributorSpark);
     fetchThroughputSparkline().then(setThroughputSpark);
     fetchRetentionSparkline().then(setRetentionSpark);
-    fetchContributorTrend().then(setTrendData);
   }, []);
 
   useEffect(() => {
@@ -148,110 +175,113 @@ export default function Home() {
 
   function renderCommandSuite() {
     return (
-      <section className="space-y-8">
-        <div className="glass-panel flex flex-wrap items-center gap-x-8 gap-y-3 px-6 py-4 text-sm">
+      <section className="space-y-4">
+        <div className="glass-panel flex flex-wrap items-center gap-x-6 gap-y-2 px-5 py-2.5 text-xs">
           <span className="flex items-center gap-2">
-            <span className="relative flex h-2.5 w-2.5">
+            <span className="relative flex h-2 w-2">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
-              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
             </span>
-            <span className="font-medium text-slate-300">
-              System Health &amp; Data Ingestion Pipeline
-            </span>
+            <span className="font-medium text-slate-300">Pipeline</span>
+            <span className="text-emerald-300">Operational</span>
           </span>
-          <span className="flex items-center gap-2 text-slate-400">
-            <Activity className="h-4 w-4 text-emerald-400" />
-            Pipeline: <span className="text-emerald-300">Operational</span>
-          </span>
-          <span className="flex items-center gap-2 text-slate-400">
-            <TrendingUp className="h-4 w-4 text-cyan-400" />
-            Ingestion:{" "}
-            <span className="font-mono text-cyan-300">
-              {ingest.toLocaleString()} events/sec
+          <span className="flex items-center gap-1.5 text-slate-500">
+            <Activity className="h-3.5 w-3.5 text-red-500" />
+            Ingestion
+            <span className="font-mono text-red-300">
+              {ingest.toLocaleString()}/s
             </span>
           </span>
-          <span className="flex items-center gap-2 text-slate-400">
-            <Database className="h-4 w-4 text-indigo-400" />
-            Warehouse Nodes: <span className="text-indigo-300">Active</span>
+          <span className="flex items-center gap-1.5 text-slate-500">
+            <Database className="h-3.5 w-3.5 text-red-500" />
+            Warehouse
+            <span className="font-mono text-slate-300">
+              547,434 events &middot; 24 repos
+            </span>
+          </span>
+          <span className="ml-auto flex items-center gap-1.5 text-slate-500">
+            <TrendingUp className="h-3.5 w-3.5 text-red-500" />
+            Window
+            <span className="font-mono text-slate-300">
+              2023-07-01 → 2024-01-01
+            </span>
           </span>
         </div>
 
         {error && (
-          <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-4 text-red-300">
+          <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-300">
             {error}
           </div>
         )}
 
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {loading
             ? Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="glass-panel h-36 animate-pulse" />
+                <div key={i} className="glass-panel h-32 animate-pulse" />
               ))
             : cards.map((c) => {
                 const Icon = c.icon;
                 return (
                   <motion.div
                     key={c.label}
-                    whileHover={{ y: -5 }}
-                    className="glass-panel p-6"
+                    whileHover={{ y: -3 }}
+                    className="glass-panel p-5"
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-slate-300">
-                        {c.label}
-                      </span>
-                      <Icon className="h-5 w-5 shrink-0 text-indigo-400" />
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="eyebrow">{c.label}</span>
+                      <Icon className="h-4 w-4 shrink-0 text-red-500/80" />
                     </div>
-                    <p className="mt-4 font-mono text-3xl font-semibold">
+                    <p className="mt-2 font-mono text-3xl font-bold tabular-nums text-slate-50">
                       {c.value}
                     </p>
-                    <div className="mt-3">
+                    <div className="mt-2">
                       <Sparkline data={c.spark} color={c.color} />
                     </div>
-                    <p className="mt-2 text-xs text-slate-500">{c.desc}</p>
+                    <p className="mt-2 text-[11px] leading-snug text-slate-500">
+                      {c.desc}
+                    </p>
                   </motion.div>
                 );
               })}
         </div>
 
-        <RevenueChart />
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
+          <div className="xl:col-span-3">
+            <RevenueChart />
+          </div>
+          <section className="glass-panel p-5 xl:col-span-2">
+            <div className="mb-2 flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-red-500" />
+              <h2 className="text-sm font-semibold text-slate-100">
+                AI Intelligence Summary
+              </h2>
+            </div>
+            {loading ? (
+              <div className="h-16 animate-pulse rounded bg-white/5" />
+            ) : (
+              <>
+                <p className="text-sm leading-relaxed text-slate-300">
+                  {summary ||
+                    "Summary unavailable (requires a configured API key)."}
+                </p>
+                {reasoning && (
+                  <p className="mt-3 border-t border-white/10 pt-3 text-[11px] leading-relaxed text-slate-500">
+                    {reasoning}
+                  </p>
+                )}
+              </>
+            )}
+          </section>
+        </div>
 
         <ArgoBriefing />
-
-        <section className="glass-panel p-6">
-          <div className="mb-3 flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-indigo-400" />
-            <h2 className="text-lg font-semibold">AI Intelligence Summary</h2>
-          </div>
-          {loading ? (
-            <div className="h-16 animate-pulse rounded bg-white/10" />
-          ) : (
-            <>
-              <p className="leading-relaxed text-slate-300">
-                {summary ||
-                  "Summary unavailable (requires a configured API key)."}
-              </p>
-              {reasoning && (
-                <p className="mt-3 border-t border-white/10 pt-3 text-xs leading-relaxed text-slate-500">
-                  {reasoning}
-                </p>
-              )}
-            </>
-          )}
-        </section>
       </section>
     );
   }
 
   function renderRetention() {
     return (
-      <section className="space-y-6">
-        <div>
-          <h2 className="text-xl font-semibold">Retention Command Queue</h2>
-          <p className="text-sm text-slate-400">
-            Contributors flagged by the churn model, ranked by predicted risk,
-            with a live simulator for probing any behavioural vector.
-          </p>
-        </div>
+      <section className="space-y-4">
         <RiskTable />
         <ChurnWidget />
       </section>
@@ -260,40 +290,21 @@ export default function Home() {
 
   function renderMlEngine() {
     return (
-      <section className="space-y-6">
-        <div>
-          <h2 className="text-xl font-semibold">ML Engine</h2>
-          <p className="text-sm text-slate-400">
-            Warehouse lineage, model attribution, and the live event stream
-            feeding the XGBoost churn classifier.
-          </p>
+      <section className="space-y-4">
+        <ModelRegistry />
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          <PipelineLineage />
+          <TelemetryLog />
         </div>
-        <PipelineLineage />
-        <TelemetryLog />
       </section>
     );
   }
 
   function renderSettings() {
     return (
-      <section className="space-y-6">
+      <section className="space-y-4">
+        <PlatformSpec />
         <GovernancePanel />
-        <div className="glass-panel p-6">
-          <h2 className="mb-4 text-xl font-semibold">Platform Parameters</h2>
-          <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {SETTINGS.map((s) => (
-              <div
-                key={s.label}
-                className="rounded-xl border border-slate-800/60 bg-slate-950/40 p-4"
-              >
-                <dt className="text-xs text-slate-500">{s.label}</dt>
-                <dd className="mt-1 font-mono text-sm text-slate-200">
-                  {s.value}
-                </dd>
-              </div>
-            ))}
-          </dl>
-        </div>
       </section>
     );
   }
@@ -316,11 +327,14 @@ export default function Home() {
       <div className="light-leak-cyan" />
       <div className="light-leak-indigo" />
       <div className="flex min-h-screen">
-      <aside className="z-50 hidden h-[calc(100vh-2rem)] w-64 shrink-0 sticky top-4 m-4 flex-col rounded-3xl border border-white/10 bg-white/5 p-4 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.7)] backdrop-blur-2xl md:flex">
-        <div className="mb-6 flex items-center gap-2 px-2">
-          <Sparkles className="h-6 w-6 text-cyan-400" />
-          <span className="text-lg font-bold">ARGO</span>
+      <aside className="z-50 hidden h-[calc(100vh-2rem)] w-60 shrink-0 sticky top-4 m-4 flex-col rounded-3xl border border-red-950/60 bg-black/50 p-4 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.85)] backdrop-blur-2xl md:flex">
+        <div className="mb-1 flex items-center gap-2 px-2">
+          <Sparkles className="h-6 w-6 text-red-500 drop-shadow-[0_0_10px_rgba(239,68,68,0.7)]" />
+          <span className="text-lg font-bold tracking-tight">ARGO</span>
         </div>
+        <p className="mb-6 px-2 text-[10px] leading-tight text-slate-600">
+          Contributor Decision Intelligence
+        </p>
 
         {NAV_GROUPS.map((group) => (
           <div key={group.heading} className="mb-4">
@@ -338,7 +352,7 @@ export default function Home() {
                     onClick={() => setActiveTab(n.id)}
                     className={`flex items-center gap-3 rounded-xl border-l-2 px-3 py-2 text-sm transition-all ${
                       active
-                        ? "bg-gradient-to-r from-cyan-500/20 to-transparent border-l-2 border-cyan-400 text-cyan-300 shadow-[inset_4px_0_10px_rgba(6,182,212,0.1)]"
+                        ? "bg-gradient-to-r from-red-600/20 to-transparent border-l-2 border-red-500 text-red-400 shadow-[inset_4px_0_10px_rgba(220,38,38,0.1)]"
                         : "border-transparent text-slate-400 hover:bg-white/5 hover:text-slate-200"
                     }`}
                   >
@@ -347,7 +361,7 @@ export default function Home() {
                       {n.label}
                     </span>
                     {"badge" in n && (
-                      <span className="ml-auto rounded-full bg-cyan-400/20 px-2 py-0.5 text-[10px] font-bold text-cyan-300">
+                      <span className="ml-auto rounded-full bg-red-500/20 px-2 py-0.5 text-[10px] font-bold text-red-400">
                         {n.badge}
                       </span>
                     )}
@@ -358,48 +372,70 @@ export default function Home() {
           </div>
         ))}
 
-        <div className="mt-auto flex items-center gap-3 border-t border-white/10 pt-4">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-cyan-400 text-sm font-bold text-white">
+        <a
+          href={PORTFOLIO_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group mt-auto flex items-center gap-3 rounded-xl border-t border-red-950/60 px-2 pt-4 transition-colors hover:border-red-800/60"
+        >
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-red-700 to-red-500 text-sm font-bold text-white shadow-[0_0_14px_rgba(239,68,68,0.4)]">
             A
           </div>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-slate-200">
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold text-slate-200 transition-colors group-hover:text-red-300">
               Aarush Udbhav
             </p>
             <p className="truncate text-xs text-slate-500">Lead AI Engineer</p>
           </div>
-        </div>
+          <ExternalLink className="h-3.5 w-3.5 shrink-0 text-slate-600 transition-colors group-hover:text-red-400" />
+        </a>
       </aside>
 
-      <main className="flex-1 p-6 lg:p-8">
-        <div className="mx-auto max-w-6xl">
-          <header className="mb-6 flex items-start justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-bold">ARGO Executive Command Suite</h1>
-              <p className="mt-1 max-w-3xl text-slate-400">
-                A product- and decision-intelligence platform that turns raw
-                customer events into governed revenue metrics, churn
-                predictions, and AI-generated strategy, so leaders can see what
-                is happening and decide what to do next.
+      <main className="flex-1 p-4 lg:p-6">
+        <div className="mx-auto max-w-7xl">
+          <header className="mb-4">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+              <h1 className="text-2xl font-bold tracking-tight">
+                ARGO
+                <span className="ml-2 font-normal text-slate-500">
+                  Contributor Decision Intelligence
+                </span>
+              </h1>
+              <p className="font-mono text-[11px] text-slate-600">
+                open-source contributor churn &middot; GitHub Archive via
+                BigQuery
               </p>
             </div>
-            <button
-              type="button"
-              onClick={handleExport}
-              disabled={isExporting}
-              className={`inline-flex shrink-0 items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-400 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_0_20px_rgba(99,102,241,0.45)] transition-all hover:from-indigo-500 hover:to-indigo-300 hover:shadow-[0_0_28px_rgba(99,102,241,0.6)] ${
-                isExporting
-                  ? "animate-pulse cursor-not-allowed opacity-80"
-                  : ""
-              }`}
-            >
-              {isExporting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Download className="h-4 w-4" />
+
+            <div className="mt-3 flex flex-wrap items-start justify-between gap-3 border-t border-red-950/50 pt-3">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-100">
+                  {TABS[activeTab].title}
+                </h2>
+                <p className="mt-0.5 max-w-3xl text-sm leading-relaxed text-slate-400">
+                  {TABS[activeTab].blurb}
+                </p>
+              </div>
+              {TABS[activeTab].exportable && (
+                <button
+                  type="button"
+                  onClick={handleExport}
+                  disabled={isExporting}
+                  className={`inline-flex shrink-0 items-center gap-2 rounded-xl bg-gradient-to-r from-red-700 to-red-500 px-4 py-2 text-sm font-semibold text-white shadow-[0_0_20px_rgba(239,68,68,0.35)] transition-all hover:from-red-600 hover:to-red-400 hover:shadow-[0_0_28px_rgba(239,68,68,0.55)] ${
+                    isExporting
+                      ? "animate-pulse cursor-not-allowed opacity-80"
+                      : ""
+                  }`}
+                >
+                  {isExporting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4" />
+                  )}
+                  {isExporting ? "Generating PDF..." : "Export Report (PDF)"}
+                </button>
               )}
-              {isExporting ? "Generating PDF..." : "Export Board Report (PDF)"}
-            </button>
+            </div>
           </header>
 
           <div id="argo-workspace">{renderWorkspace()}</div>

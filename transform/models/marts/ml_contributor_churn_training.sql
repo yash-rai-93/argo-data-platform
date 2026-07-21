@@ -54,11 +54,16 @@ observation as (
 
 target as (
 
-    select distinct e.actor_login
+    -- Survivors: contributors seen again inside the target window. max() is
+    -- their last observed activity, which is where right-censoring occurs.
+    select
+        e.actor_login,
+        max(e.created_at) as last_target_event_at
     from events as e
     cross join bounds as b
     where e.created_at >= b.observation_end
         and e.created_at < b.target_end
+    group by e.actor_login
 
 ),
 
@@ -136,7 +141,31 @@ select
         (f.events_first_half - f.events_second_half)
         / nullif(cast(f.total_events as double), 0), 0
     ) as deceleration_ratio,
-    case when t.actor_login is null then 1 else 0 end as is_churned
+    -- Binary target, retained so the deployed classifier keeps building while
+    -- the survival model is developed alongside it.
+    case when t.actor_login is null then 1 else 0 end as is_churned,
+
+    -- Survival targets.
+    --
+    -- event = 1 when the contributor lapsed (no activity in the target
+    -- window), 0 when they were still active at the study cutoff and are
+    -- therefore right-censored.
+    case when t.actor_login is null then 1 else 0 end as event,
+
+    -- duration = days under observation from entry until the event or until
+    -- censoring, whichever came first.
+    --
+    --   lapsed    -> first_event_at .. last_event_at (their final activity)
+    --   censored  -> first_event_at .. target_end    (the study cutoff)
+    --
+    -- Censored subjects MUST run to the cutoff, not to their last observed
+    -- event. Ending them early would report a shorter survival time than was
+    -- actually observed and bias every hazard estimate downward.
+    case
+        when t.actor_login is null
+            then date_diff('day', f.first_event_at, f.last_event_at)
+        else date_diff('day', f.first_event_at, b.target_end)
+    end as duration
 from features as f
 cross join bounds as b
 left join target as t on f.actor_login = t.actor_login

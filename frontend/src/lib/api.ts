@@ -45,6 +45,14 @@ export interface ShapAttribution {
   contribution: number;
 }
 
+// One point on a contributor's survival function: P(T > day), the probability
+// they are still contributing after that many days. Produced by scaling a
+// Breslow baseline by the Cox model's predicted hazard ratio.
+export interface SurvivalPoint {
+  day: number;
+  survival: number;
+}
+
 export interface ChurnPrediction {
   churn_prediction: number;
   probability: number;
@@ -52,6 +60,13 @@ export interface ChurnPrediction {
   base_log_odds: number;
   shap_attribution: ShapAttribution[];
   top_factors: ShapAttribution[];
+  // Cox proportional-hazards output. hazard_ratio is unbounded and relative:
+  // 1.0 is the cohort baseline, 2.0 decays twice as fast. median_survival_days
+  // is null when the curve never reaches 0.5 inside the 180-day horizon.
+  hazard_ratio: number;
+  median_survival_days: number | null;
+  survival_curve: SurvivalPoint[];
+  survival_milestones: SurvivalPoint[];
 }
 
 // Scored temporal holdout, served once so the threshold slider can recompute a
@@ -65,6 +80,68 @@ export interface ThresholdHoldout {
 
 export async function fetchThresholdHoldout(): Promise<ThresholdHoldout> {
   return request<ThresholdHoldout>("/predict/simulate/threshold");
+}
+
+// One row per recorded training iteration. Appended by ml/train_churn.py on
+// every run, so the history accumulates from execution rather than editing.
+export interface ModelVersion {
+  version: string;
+  recorded_at: string;
+  dataset: string;
+  split_strategy: string;
+  n_features: number;
+  n_rows: number;
+  n_train: number;
+  n_test: number;
+  churn_rate_test: number | null;
+  cv_roc_auc: number | null;
+  holdout_roc_auc: number | null;
+  precision: number | null;
+  recall: number | null;
+  best_params: string;
+  change_summary: string;
+  comparable: boolean;
+}
+
+export async function fetchModelRegistry(): Promise<ModelVersion[]> {
+  return request<ModelVersion[]>("/predict/registry");
+}
+
+// Full specification of the deployed model, read from the artifacts on disk
+// and the warehouse rather than hardcoded, so it cannot describe a model other
+// than the one actually serving predictions.
+export interface ModelCard {
+  algorithm: string;
+  objective: string;
+  artifact: string;
+  artifact_bytes: number;
+  artifact_modified: string | null;
+  n_trees: number;
+  n_features: number;
+  features: { name: string; label: string }[];
+  target: string;
+  hyperparameters: Record<string, number | string>;
+  scale_pos_weight: number | null;
+  cv_splits: number | null;
+  cv_roc_auc: number | null;
+  decision_threshold: number;
+  explainer: string;
+  data: {
+    source: string;
+    window_start: string;
+    window_end: string;
+    source_rows: number;
+    repos: number;
+    cohort_rows: number;
+    cohort_churn_rate: number;
+    eligibility: string;
+    observation_window: string;
+    target_window: string;
+  };
+}
+
+export async function fetchModelCard(): Promise<ModelCard> {
+  return request<ModelCard>("/predict/model-card");
 }
 
 // dbt build metadata, parsed straight from run_results.json by
@@ -109,13 +186,19 @@ export async function fetchGovernanceHealth(): Promise<GovernanceHealth> {
   return request<GovernanceHealth>("/metrics/governance/health");
 }
 
+// One row of the triage queue, scored live by the Cox survival model.
+// median_survival_days is null when the curve never reaches 50% inside the
+// 180-day horizon -- the contributor has no projected lapse date, which is a
+// real answer, not a missing value.
 export interface CustomerRisk {
   contributor: string;
   primary_repo: string;
   tenure_days: number;
   total_events: number;
   days_since_last_event: number;
-  risk_score: number;
+  hazard_ratio: number;
+  median_survival_days: number | null;
+  survival_curve: SurvivalPoint[];
 }
 
 export interface TrendMetric {

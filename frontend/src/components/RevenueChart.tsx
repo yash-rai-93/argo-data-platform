@@ -28,7 +28,7 @@ function CustomTooltip({ active, payload, label }: MrrTooltipProps) {
   return (
     <div className="rounded-lg border border-white/10 bg-slate-900/90 px-3 py-2 text-sm shadow-xl backdrop-blur">
       <p className="text-slate-400">{label}</p>
-      <p className="font-semibold text-cyan-300">
+      <p className="font-semibold text-red-400">
         {value.toLocaleString()} contributors
       </p>
     </div>
@@ -49,8 +49,8 @@ export default function RevenueChart() {
     return (
       <section className="glass-panel flex h-80 items-center justify-center p-6">
         <div className="flex items-center gap-3">
-          <span className="h-2.5 w-2.5 animate-ping rounded-full bg-cyan-400" />
-          <span className="animate-pulse font-mono text-sm text-cyan-300 drop-shadow-[0_0_12px_rgba(34,211,238,0.6)]">
+          <span className="h-2.5 w-2.5 animate-ping rounded-full bg-red-500" />
+          <span className="animate-pulse font-mono text-sm text-red-400 drop-shadow-[0_0_12px_rgba(239,68,68,0.6)]">
             Streaming warehouse telemetry...
           </span>
         </div>
@@ -61,7 +61,7 @@ export default function RevenueChart() {
   return (
     <section className="glass-panel p-6">
       <div className="mb-4 flex items-center gap-2">
-        <TrendingUp className="h-5 w-5 text-cyan-400" />
+        <TrendingUp className="h-5 w-5 text-red-500" />
         <h2 className="text-lg font-semibold text-slate-100">Monthly Active Contributors</h2>
       </div>
       <div className="h-64 w-full">
@@ -69,7 +69,7 @@ export default function RevenueChart() {
           <AreaChart
             data={data}
             accessibilityLayer={false}
-            margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+            margin={{ top: 0, right: 0, left: 0, bottom: 0 }}
           >
             <defs>
               <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
@@ -93,7 +93,7 @@ export default function RevenueChart() {
               content={<CustomTooltip />}
               wrapperStyle={{ outline: "none", border: "none" }}
               contentStyle={{ border: "none", background: "transparent" }}
-              cursor={{ stroke: "rgba(34,211,238,0.2)", strokeWidth: 2 }}
+              cursor={{ stroke: "rgba(239,68,68,0.2)", strokeWidth: 2 }}
             />
             <Area
               type="monotone"

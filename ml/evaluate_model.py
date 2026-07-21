@@ -1,87 +1,110 @@
-"""Evaluate the contributor-churn classifier and export dashboard assets.
+"""Evaluate the Cox survival model and export dashboard assets.
 
-Performs a temporal 80/20 holdout rather than a random split: rows are ordered
-by ``tenure_days`` descending so the longest-tenured (earliest-joined)
-contributors form the training set and the newest cohort forms the test set.
-This measures generalisation to contributors the model has never seen a
-comparable history for, which is the deployment condition.
+The split is identical to ml/train_churn.py: rows ordered by ``first_event_at``
+ascending and cut 80/20, so the holdout evaluated here is the same holdout the
+model was withheld from.
 
-Reads through a zero-copy Arrow handoff from DuckDB and writes two PNGs into
-``frontend/public/assets/`` for the Next.js dashboard to serve statically.
+Survival models are not scored with ROC-AUC, precision, or recall. Those
+metrics require a hard label at a fixed horizon, which discards every
+right-censored contributor -- exactly the population survival analysis exists
+to handle. The concordance index replaces them: over all comparable pairs,
+how often does the model rank the contributor who lapsed first as the riskier
+of the two? 0.5 is a coin flip, 1.0 is perfect ordering.
+
+Writes two PNGs into ``frontend/public/assets/`` for the Next.js dashboard:
+Kaplan-Meier curves stratified by predicted risk, and a SHAP summary over the
+log-hazard.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Final
 
 import duckdb
 import matplotlib
 import numpy as np
+import pandas as pd
 import shap
 import xgboost as xgb
 
 matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt  # noqa: E402
-from sklearn.metrics import (  # noqa: E402
-    ConfusionMatrixDisplay,
-    confusion_matrix,
-    precision_score,
-    recall_score,
-    roc_auc_score,
-)
+from sksurv.metrics import concordance_index_censored  # noqa: E402
+from sksurv.nonparametric import kaplan_meier_estimator  # noqa: E402
 
 from ml.feature_extractor import (  # noqa: E402
     FEATURE_COLUMNS,
     FEATURE_LABELS,
-    TARGET_COLUMN,
+    TARGET_COLUMNS,
     enforce_schema,
 )
 
-_ROOT = Path(__file__).resolve().parents[1]
-_DB_PATH = _ROOT / "transform" / "argo.duckdb"
-_MODEL_PATH = _ROOT / "ml" / "models" / "churn_xgb.json"
-_ASSET_DIR = _ROOT / "frontend" / "public" / "assets"
-_TRAINING_TABLE = "ml_contributor_churn_training"
-_SPLIT_RATIO = 0.8
+_ROOT: Final[Path] = Path(__file__).resolve().parents[1]
+_DB_PATH: Final[Path] = _ROOT / "transform" / "argo.duckdb"
+_MODEL_PATH: Final[Path] = _ROOT / "ml" / "models" / "churn_cox.json"
+_ASSET_DIR: Final[Path] = _ROOT / "frontend" / "public" / "assets"
+_TRAINING_TABLE: Final[str] = "ml_contributor_churn_training"
+_SPLIT_COLUMN: Final[str] = "first_event_at"
+_DURATION_COLUMN: Final[str] = TARGET_COLUMNS[0]
+_EVENT_COLUMN: Final[str] = TARGET_COLUMNS[1]
+_SPLIT_RATIO: Final[float] = 0.8
 
-_BACKGROUND = "#020408"
-_FOREGROUND = "#e2e8f0"
+_BACKGROUND: Final[str] = "#050203"
+_FOREGROUND: Final[str] = "#e2e8f0"
+_STRATA: Final[list[tuple[str, str]]] = [
+    ("Low risk (bottom tercile)", "#34d399"),
+    ("Medium risk", "#f59e0b"),
+    ("High risk (top tercile)", "#ef4444"),
+]
 
 
-def load_arrow_frame():
-    """Pull training rows out of DuckDB via a zero-copy Arrow table.
+def load_arrow_frame() -> pd.DataFrame:
+    """Pull rows out of DuckDB via a zero-copy Arrow table.
 
-    Ordering matches ml/train_churn.py exactly so the holdout evaluated here
-    is the same holdout the model was withheld from.
+    Ordering matches ml/train_churn.py exactly so the holdout evaluated here is
+    the same holdout the model was withheld from.
     """
-    columns = ", ".join(["first_event_at", *FEATURE_COLUMNS, TARGET_COLUMN])
+    columns: str = ", ".join([_SPLIT_COLUMN, *FEATURE_COLUMNS, _DURATION_COLUMN, _EVENT_COLUMN])
     connection = duckdb.connect(str(_DB_PATH), read_only=True)
     try:
         arrow_table = connection.execute(
-            f"select {columns} from {_TRAINING_TABLE} order by first_event_at asc, actor_login asc"
+            f"select {columns} from {_TRAINING_TABLE} order by {_SPLIT_COLUMN} asc, actor_login asc"
         ).to_arrow_table()
     finally:
         connection.close()
     return arrow_table.to_pandas(zero_copy_only=False)
 
 
-def temporal_split(frame):
-    """Split the ordered frame into an older train head and a newer test tail."""
-    cutoff = int(len(frame) * _SPLIT_RATIO)
+def temporal_split(
+    frame: pd.DataFrame,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
+    """Split the ordered frame into an earlier train head and a later holdout."""
+    cutoff: int = int(len(frame) * _SPLIT_RATIO)
     if cutoff == 0 or cutoff == len(frame):
         raise SystemExit("Training table is too small for an 80/20 temporal split.")
-    train, test = frame.iloc[:cutoff], frame.iloc[cutoff:]
-    print(f"Split boundary: {frame['first_event_at'].iloc[cutoff]}")
+    print(f"Split boundary: {frame[_SPLIT_COLUMN].iloc[cutoff]}")
+
+    train: pd.DataFrame = frame.iloc[:cutoff]
+    test: pd.DataFrame = frame.iloc[cutoff:]
     return (
         enforce_schema(train),
-        train[TARGET_COLUMN],
         enforce_schema(test),
-        test[TARGET_COLUMN],
+        test[_DURATION_COLUMN],
+        test[_EVENT_COLUMN],
     )
 
 
-def style_axes(axes) -> None:
+def concordance(duration: pd.Series, event: pd.Series, risk: np.ndarray) -> float:
+    """Return Harrell's C-index for predicted hazard ratios."""
+    result = concordance_index_censored(
+        event.to_numpy(dtype=bool), duration.to_numpy(dtype="float64"), risk
+    )
+    return float(result[0])
+
+
+def style_axes(axes: plt.Axes) -> None:
     """Apply the dashboard's dark palette to a matplotlib axes object."""
     axes.set_facecolor(_BACKGROUND)
     axes.tick_params(colors=_FOREGROUND)
@@ -89,30 +112,59 @@ def style_axes(axes) -> None:
     axes.yaxis.label.set_color(_FOREGROUND)
     axes.title.set_color(_FOREGROUND)
     for spine in axes.spines.values():
-        spine.set_color("#1e293b")
+        spine.set_color("#450a0a")
 
 
-def save_confusion_matrix(y_true, y_pred) -> Path:
-    """Render and persist the holdout confusion matrix."""
-    matrix = confusion_matrix(y_true, y_pred)
-    figure, axes = plt.subplots(figsize=(5, 4.5), facecolor=_BACKGROUND)
-    display = ConfusionMatrixDisplay(matrix, display_labels=["Retained", "Churned"])
-    display.plot(ax=axes, cmap="cividis", colorbar=False, values_format="d")
-    axes.set_title("Contributor Churn — Temporal Holdout")
-    style_axes(axes)
-    for text in axes.texts:
+def save_km_curves(duration: pd.Series, event: pd.Series, risk: np.ndarray, c_index: float) -> Path:
+    """Render Kaplan-Meier survival curves stratified by predicted risk.
+
+    This is the survival equivalent of a confusion matrix: if the model ranks
+    correctly, the high-risk curve falls fastest and the three bands never
+    cross. Separation between them is the model's discrimination made visible.
+    """
+    terciles: np.ndarray = np.quantile(risk, [1 / 3, 2 / 3])
+    band: np.ndarray = np.digitize(risk, terciles)
+
+    figure, axes = plt.subplots(figsize=(7, 5), facecolor=_BACKGROUND)
+    for index, (label, colour) in enumerate(_STRATA):
+        mask: np.ndarray = band == index
+        if mask.sum() == 0:
+            continue
+        times, survival = kaplan_meier_estimator(
+            event.to_numpy(dtype=bool)[mask],
+            duration.to_numpy(dtype="float64")[mask],
+        )
+        axes.step(
+            times,
+            survival,
+            where="post",
+            color=colour,
+            linewidth=2,
+            label=f"{label}  (n={int(mask.sum())})",
+        )
+
+    axes.set_xlabel("Days since first contribution")
+    axes.set_ylabel("Probability still active")
+    axes.set_title(f"Kaplan-Meier by predicted risk — C-index {c_index:.4f}")
+    axes.set_ylim(0, 1.02)
+    axes.grid(color="#1f2937", linestyle=":", linewidth=0.6)
+    legend = axes.legend(facecolor=_BACKGROUND, edgecolor="#450a0a", fontsize=9)
+    for text in legend.get_texts():
         text.set_color(_FOREGROUND)
+    style_axes(axes)
+
     figure.tight_layout()
-    path = _ASSET_DIR / "confusion_matrix.png"
+    path: Path = _ASSET_DIR / "survival_curves.png"
     figure.savefig(path, dpi=160, facecolor=_BACKGROUND)
     plt.close(figure)
     return path
 
 
-def save_shap_summary(model, x_test) -> Path:
-    """Render and persist the global SHAP feature-importance summary."""
-    labelled = x_test.rename(columns=FEATURE_LABELS)
+def save_shap_summary(model: xgb.XGBRegressor, x_test: pd.DataFrame) -> Path:
+    """Render the global SHAP summary over the predicted log-hazard."""
+    labelled: pd.DataFrame = x_test.rename(columns=FEATURE_LABELS)
     values = shap.TreeExplainer(model).shap_values(x_test)
+
     plt.figure(figsize=(7, 5.5), facecolor=_BACKGROUND)
     shap.summary_plot(values, labelled, show=False, color_bar=True)
     figure = plt.gcf()
@@ -121,42 +173,43 @@ def save_shap_summary(model, x_test) -> Path:
         style_axes(axes)
         for text in axes.get_yticklabels() + axes.get_xticklabels():
             text.set_color(_FOREGROUND)
+
     figure.tight_layout()
-    path = _ASSET_DIR / "shap_summary.png"
+    path: Path = _ASSET_DIR / "shap_summary.png"
     figure.savefig(path, dpi=160, facecolor=_BACKGROUND)
     plt.close(figure)
     return path
 
 
 def main() -> None:
-    """Score the persisted model on the newest cohort and export both plots."""
+    """Score the Cox model on the newest cohort and export both plots."""
     if not _MODEL_PATH.exists():
         raise SystemExit(f"{_MODEL_PATH} not found; run ml/train_churn.py first.")
 
-    frame = load_arrow_frame()
+    frame: pd.DataFrame = load_arrow_frame()
     if frame.empty:
         raise SystemExit(
             f"{_TRAINING_TABLE} is empty; run etl/land_github_data.py "
             "and 'dbt build' before evaluating."
         )
 
-    x_train, _y_train, x_test, y_test = temporal_split(frame)
+    x_train, x_test, d_test, e_test = temporal_split(frame)
 
-    model = xgb.XGBClassifier()
+    model = xgb.XGBRegressor()
     model.load_model(str(_MODEL_PATH))
+    risk: np.ndarray = np.asarray(model.predict(x_test))
+    c_index: float = concordance(d_test, e_test, risk)
 
-    predictions = model.predict(x_test)
-    probabilities = model.predict_proba(x_test)[:, 1]
-
-    print(f"Train rows:  {len(x_train)}")
-    print(f"Test rows:   {len(x_test)}")
-    print(f"Positive rate (test): {float(np.mean(y_test)):.4f}")
-    print(f"Precision:   {precision_score(y_test, predictions, zero_division=0):.4f}")
-    print(f"Recall:      {recall_score(y_test, predictions, zero_division=0):.4f}")
-    print(f"ROC-AUC:     {roc_auc_score(y_test, probabilities):.4f}")
+    print(f"Train rows:        {len(x_train)}")
+    print(f"Test rows:         {len(x_test)}")
+    print(f"Events observed:   {int(e_test.sum())}")
+    print(f"Right-censored:    {int((1 - e_test).sum())}")
+    print(f"Median duration:   {float(d_test.median()):.0f} days")
+    print(f"Holdout C-index:   {c_index:.4f}")
+    print(f"Hazard range:      {risk.min():.3f} to {risk.max():.3f}")
 
     _ASSET_DIR.mkdir(parents=True, exist_ok=True)
-    print(f"Saved {save_confusion_matrix(y_test, predictions)}")
+    print(f"Saved {save_km_curves(d_test, e_test, risk, c_index)}")
     print(f"Saved {save_shap_summary(model, x_test)}")
 
 

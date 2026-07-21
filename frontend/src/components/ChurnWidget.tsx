@@ -1,7 +1,18 @@
 "use client";
 
-import { AlertTriangle, Gauge, ShieldCheck, Sigma, SlidersHorizontal } from "lucide-react";
+import { Activity, Gauge, Sigma, SlidersHorizontal } from "lucide-react";
 import { type FormEvent, useEffect, useMemo, useState } from "react";
+import {
+  CartesianGrid,
+  Line,
+  LineChart,
+  ReferenceLine,
+  ResponsiveContainer,
+  Tooltip,
+  type TooltipContentProps,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 import ShapExplanation from "@/components/ShapExplanation";
 import {
@@ -11,6 +22,25 @@ import {
   type ChurnPrediction,
   type ThresholdHoldout,
 } from "@/lib/api";
+
+// recharts v3 moves payload/label off TooltipProps and onto TooltipContentProps.
+// Partial, because the element is mounted without props and recharts injects
+// them at render time.
+type SurvivalTooltipProps = Partial<TooltipContentProps<number, string>>;
+
+function SurvivalTooltip({ active, payload, label }: SurvivalTooltipProps) {
+  if (!active || !payload || payload.length === 0) return null;
+  const value = payload[0]?.value;
+  if (typeof value !== "number") return null;
+  return (
+    <div className="rounded-lg border border-white/10 bg-slate-900/90 px-3 py-2 text-xs shadow-xl backdrop-blur">
+      <p className="text-slate-400">Day {label}</p>
+      <p className="font-mono font-semibold text-red-400">
+        {(value * 100).toFixed(1)}% still active
+      </p>
+    </div>
+  );
+}
 
 interface ConfusionMatrix {
   tp: number;
@@ -79,6 +109,20 @@ interface Field {
   label: string;
   step: string;
   min: string;
+  // Present when the feature is algebraically determined by other inputs. The
+  // formula mirrors ml_contributor_churn_training.sql exactly, so a derived
+  // value is identical to what the warehouse would have computed.
+  derive?: (values: FormState) => number;
+  formula?: string;
+}
+
+function num(values: FormState, key: FieldKey): number {
+  const parsed = Number(values[key]);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function safeRatio(numerator: number, denominator: number): number {
+  return denominator === 0 ? 0 : numerator / denominator;
 }
 
 interface Scenario {
@@ -102,6 +146,8 @@ const FIELDS: readonly Field[] = [
     label: "Events per Active Day",
     step: "0.1",
     min: "0",
+    derive: (v) => safeRatio(num(v, "total_events"), num(v, "active_days")),
+    formula: "total_events / active_days",
   },
   { key: "tenure_days", label: "Tenure (days)", step: "1", min: "0" },
   {
@@ -122,6 +168,9 @@ const FIELDS: readonly Field[] = [
     label: "Deceleration Ratio (-1 to 1)",
     step: "0.01",
     min: "-1",
+    derive: (v) =>
+      safeRatio(num(v, "deceleration_score"), num(v, "total_events")),
+    formula: "deceleration_score / total_events",
   },
 ];
 
@@ -213,11 +262,17 @@ function toFormState(features: ChurnFeatures): FormState {
   );
 }
 
+// Derived fields are always recomputed from their inputs, never read off the
+// form, so the payload is complete and internally consistent. The API keeps its
+// full Pydantic validation and the model never receives a NaN it was not
+// trained against.
 function toFeatures(values: FormState): ChurnFeatures {
   return FIELDS.reduce(
     (accumulator, field) => ({
       ...accumulator,
-      [field.key]: Number(values[field.key]),
+      [field.key]: field.derive
+        ? Number(field.derive(values).toFixed(4))
+        : num(values, field.key),
     }),
     {} as ChurnFeatures,
   );
@@ -265,14 +320,15 @@ export default function ChurnWidget() {
     void runPrediction(toFeatures(values));
   }
 
-  // Single-prediction verdict honours the simulator's cutoff, not a hardcoded
-  // 0.5, so moving the slider reclassifies the scored contributor live.
-  const highRisk: boolean = result ? result.probability >= threshold : false;
+  // A hazard ratio is relative, not absolute: 1.0 is the cohort baseline, above
+  // it the contributor decays faster than average. This is the survival
+  // equivalent of the binary verdict the badge used to render.
+  const decaying: boolean = result ? result.hazard_ratio >= 1 : false;
 
   return (
-    <section className="glass-panel p-6 transition-all focus-within:ring-1 focus-within:ring-cyan-400/40 focus-within:shadow-[0_0_30px_rgba(34,211,238,0.25)]">
+    <section className="glass-panel p-6 transition-all focus-within:ring-1 focus-within:ring-red-500/40 focus-within:shadow-[0_0_30px_rgba(239,68,68,0.25)]">
       <div className="mb-4 flex items-center gap-2">
-        <Gauge className="h-5 w-5 text-cyan-400" />
+        <Gauge className="h-5 w-5 text-red-500" />
         <h2 className="text-lg font-semibold text-slate-100">
           Contributor Churn Simulator
         </h2>
@@ -286,7 +342,7 @@ export default function ChurnWidget() {
                 key={scenario.name}
                 type="button"
                 onClick={() => loadScenario(scenario.features)}
-                className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-slate-300 transition-all hover:border-cyan-400/50 hover:text-cyan-300"
+                className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-slate-300 transition-all hover:border-red-500/50 hover:text-red-400"
               >
                 {scenario.name}
               </button>
@@ -295,40 +351,61 @@ export default function ChurnWidget() {
 
           <form onSubmit={handleSubmit} className="space-y-3">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {FIELDS.map((field) => (
-                <div key={field.key} className="relative">
-                  <input
-                    id={field.key}
-                    type="number"
-                    step={field.step}
-                    min={field.min || undefined}
-                    required
-                    placeholder=" "
-                    value={values[field.key]}
-                    onChange={(event) =>
-                      setValues((previous) => ({
-                        ...previous,
-                        [field.key]: event.target.value,
-                      }))
-                    }
-                    className="peer w-full rounded-xl border border-white/10 bg-slate-900/40 px-3 pb-1.5 pt-5 text-sm text-white opacity-70 outline-none transition-all focus:border-cyan-400/70 focus:opacity-100 focus:ring-2 focus:ring-cyan-400/40"
-                  />
-                  <label
-                    htmlFor={field.key}
-                    className="pointer-events-none absolute left-3 top-3.5 text-xs text-slate-500 transition-all peer-focus:top-1 peer-focus:text-[10px] peer-focus:text-cyan-300 peer-[:not(:placeholder-shown)]:top-1 peer-[:not(:placeholder-shown)]:text-[10px] peer-[:not(:placeholder-shown)]:text-slate-400"
-                  >
-                    {field.label}
-                  </label>
-                </div>
-              ))}
+              {FIELDS.map((field) => {
+                const derived: boolean = Boolean(field.derive);
+                const shown: string = derived
+                  ? String(Number(field.derive!(values).toFixed(4)))
+                  : values[field.key];
+                return (
+                  <div key={field.key} className="relative">
+                    <input
+                      id={field.key}
+                      type="number"
+                      step={field.step}
+                      min={field.min || undefined}
+                      required={!derived}
+                      readOnly={derived}
+                      tabIndex={derived ? -1 : undefined}
+                      title={derived ? `Auto-calculated: ${field.formula}` : undefined}
+                      placeholder=" "
+                      value={shown}
+                      onChange={(event) =>
+                        setValues((previous) => ({
+                          ...previous,
+                          [field.key]: event.target.value,
+                        }))
+                      }
+                      className={`peer w-full rounded-xl border px-3 pb-1.5 pt-5 text-sm outline-none transition-all ${
+                        derived
+                          ? "cursor-not-allowed border-red-500/20 bg-red-500/5 text-red-400/80"
+                          : "border-white/10 bg-slate-900/40 text-white opacity-70 focus:border-red-500/70 focus:opacity-100 focus:ring-2 focus:ring-red-500/40"
+                      }`}
+                    />
+                    <label
+                      htmlFor={field.key}
+                      className="pointer-events-none absolute left-3 top-3.5 text-xs text-slate-500 transition-all peer-focus:top-1 peer-focus:text-[10px] peer-focus:text-red-400 peer-[:not(:placeholder-shown)]:top-1 peer-[:not(:placeholder-shown)]:text-[10px] peer-[:not(:placeholder-shown)]:text-slate-400"
+                    >
+                      {field.label}
+                    </label>
+                    {derived && (
+                      <span className="pointer-events-none absolute right-3 top-1 text-[9px] font-semibold uppercase tracking-wider text-red-500/70">
+                        auto
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-xl bg-gradient-to-r from-indigo-500 to-cyan-400 py-3 font-bold text-white shadow-[0_0_20px_rgba(34,211,238,0.4)] transition-all hover:opacity-90 disabled:opacity-50"
+              className="group relative z-10 w-full overflow-hidden rounded-lg border border-red-700/50 bg-red-800/90 py-3 font-bold text-slate-200 transition-colors duration-300 hover:text-white disabled:opacity-50"
             >
-              {loading ? "Scoring..." : "Predict Churn"}
+              <span className="absolute bottom-0 left-0 -z-10 h-0 w-full bg-black transition-all duration-300 group-hover:h-full" />
+              <span className="relative">
+                {loading ? "Scoring..." : "Predict Churn"}
+              </span>
             </button>
           </form>
 
@@ -339,45 +416,126 @@ export default function ChurnWidget() {
           )}
 
           {result && (
-            <div
-              className={`mt-4 flex items-center justify-between rounded-xl border p-4 ${
-                highRisk
-                  ? "border-red-500/50 bg-red-500/10 shadow-[0_0_25px_rgba(239,68,68,0.55)]"
-                  : "border-emerald-500/50 bg-emerald-500/10 shadow-[0_0_25px_rgba(16,185,129,0.55)]"
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                {highRisk ? (
-                  <AlertTriangle className="h-5 w-5 text-red-400 drop-shadow-[0_0_8px_rgba(239,68,68,0.9)]" />
-                ) : (
-                  <ShieldCheck className="h-5 w-5 text-emerald-400 drop-shadow-[0_0_8px_rgba(16,185,129,0.9)]" />
-                )}
-                <span
-                  className={
-                    highRisk
-                      ? "text-red-300 drop-shadow-[0_0_8px_rgba(239,68,68,0.7)]"
-                      : "text-emerald-300 drop-shadow-[0_0_8px_rgba(16,185,129,0.7)]"
-                  }
-                >
-                  {highRisk ? "High risk" : "Low risk"}
-                </span>
+            <div className="mt-4 rounded-xl border border-slate-800/60 bg-slate-950/40 p-4">
+              <div className="mb-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Activity
+                    className={`h-4 w-4 ${
+                      decaying ? "text-red-400" : "text-emerald-400"
+                    }`}
+                  />
+                  <h3 className="text-sm font-semibold text-slate-200">
+                    Projected Survival
+                  </h3>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] uppercase tracking-widest text-slate-500">
+                    Hazard Ratio
+                  </p>
+                  <p
+                    className={`font-mono text-xl font-bold ${
+                      decaying
+                        ? "text-red-400 drop-shadow-[0_0_12px_rgba(239,68,68,0.7)]"
+                        : "text-emerald-400 drop-shadow-[0_0_12px_rgba(16,185,129,0.7)]"
+                    }`}
+                  >
+                    {result.hazard_ratio.toFixed(2)}&times;
+                  </p>
+                </div>
               </div>
-              <span
-                className={`text-2xl font-bold ${
-                  highRisk
-                    ? "text-red-400 drop-shadow-[0_0_12px_rgba(239,68,68,0.9)]"
-                    : "text-emerald-400 drop-shadow-[0_0_12px_rgba(16,185,129,0.9)]"
-                }`}
-              >
-                {(result.probability * 100).toFixed(1)}%
-              </span>
+
+              <div className="h-52 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart
+                    data={result.survival_curve}
+                    margin={{ top: 4, right: 8, bottom: 4, left: -18 }}
+                  >
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="#1f2937"
+                      vertical={false}
+                    />
+                    <XAxis
+                      dataKey="day"
+                      stroke="#475569"
+                      tick={{ fontSize: 10 }}
+                      tickLine={false}
+                      ticks={[0, 30, 60, 90, 120, 150, 180]}
+                    />
+                    <YAxis
+                      domain={[0, 1]}
+                      stroke="#475569"
+                      tick={{ fontSize: 10 }}
+                      tickLine={false}
+                      tickFormatter={(value: number) => `${value * 100}%`}
+                    />
+                    <Tooltip content={<SurvivalTooltip />} />
+                    <ReferenceLine
+                      y={0.5}
+                      stroke="#64748b"
+                      strokeDasharray="4 4"
+                      label={{
+                        value: "median",
+                        position: "insideTopRight",
+                        fill: "#64748b",
+                        fontSize: 9,
+                      }}
+                    />
+                    {/* type="stepAfter" because a Kaplan-Meier estimate is a
+                        step function: survival only drops at observed event
+                        times and is flat between them. Smoothing it would
+                        imply continuous decay the data never measured. */}
+                    <Line
+                      type="stepAfter"
+                      dataKey="survival"
+                      stroke={decaying ? "#ef4444" : "#34d399"}
+                      strokeWidth={2}
+                      dot={false}
+                      isAnimationActive={false}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div className="mt-3 grid grid-cols-4 gap-2">
+                {result.survival_milestones.map((point) => (
+                  <div
+                    key={point.day}
+                    className="rounded-lg border border-white/5 bg-white/5 px-2 py-1.5 text-center"
+                  >
+                    <p className="text-[9px] uppercase tracking-wider text-slate-500">
+                      Day {point.day}
+                    </p>
+                    <p className="font-mono text-sm font-semibold text-slate-200">
+                      {(point.survival * 100).toFixed(0)}%
+                    </p>
+                  </div>
+                ))}
+                <div className="rounded-lg border border-red-500/20 bg-red-500/5 px-2 py-1.5 text-center">
+                  <p className="text-[9px] uppercase tracking-wider text-slate-500">
+                    Median
+                  </p>
+                  <p className="font-mono text-sm font-semibold text-red-300">
+                    {result.median_survival_days === null
+                      ? "180+"
+                      : `${result.median_survival_days}d`}
+                  </p>
+                </div>
+              </div>
+
+              <p className="mt-3 text-[11px] leading-relaxed text-slate-500">
+                P(T &gt; t) from the Cox model, a Breslow baseline raised to this
+                contributor&apos;s hazard ratio. Median is the first day survival
+                falls below 50%; &ldquo;180+&rdquo; means it never does inside
+                the observed window.
+              </p>
             </div>
           )}
         </div>
 
         <div className="rounded-xl border border-slate-800/60 bg-slate-950/30 p-5">
           <div className="mb-4 flex items-center gap-2">
-            <Sigma className="h-4 w-4 text-cyan-400" />
+            <Sigma className="h-4 w-4 text-red-500" />
             <h3 className="text-sm font-semibold text-slate-200">
               Decision Margin
             </h3>
@@ -386,11 +544,11 @@ export default function ChurnWidget() {
           {result ? (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-xl border border-cyan-400/20 bg-slate-950/50 p-4">
+                <div className="rounded-xl border border-red-500/20 bg-slate-950/50 p-4">
                   <p className="text-[10px] uppercase tracking-widest text-slate-500">
                     Predicted Log-Odds
                   </p>
-                  <p className="mt-1 font-mono text-3xl font-bold text-cyan-300 drop-shadow-[0_0_14px_rgba(34,211,238,0.4)]">
+                  <p className="mt-1 font-mono text-3xl font-bold text-red-400 drop-shadow-[0_0_14px_rgba(239,68,68,0.4)]">
                     {result.log_odds.toFixed(3)}
                   </p>
                 </div>
@@ -447,7 +605,7 @@ export default function ChurnWidget() {
 
       <div className="mt-6 rounded-xl border border-slate-800/60 bg-slate-950/30 p-5">
         <div className="mb-1 flex items-center gap-2">
-          <SlidersHorizontal className="h-4 w-4 text-cyan-400" />
+          <SlidersHorizontal className="h-4 w-4 text-red-500" />
           <h3 className="text-sm font-semibold text-slate-200">
             Decision Threshold Simulator
           </h3>
@@ -460,7 +618,7 @@ export default function ChurnWidget() {
 
         <div className="mb-2 flex items-center justify-between text-xs">
           <span className="text-slate-400">Classify as churn when P(churn) &ge;</span>
-          <span className="font-mono text-lg font-bold text-cyan-300">
+          <span className="font-mono text-lg font-bold text-red-400">
             {threshold.toFixed(2)}
           </span>
         </div>
@@ -472,7 +630,7 @@ export default function ChurnWidget() {
           value={threshold}
           disabled={!holdout}
           onChange={(event) => setThreshold(Number(event.target.value))}
-          className="w-full accent-cyan-400 disabled:opacity-40"
+          className="w-full accent-red-500 disabled:opacity-40"
         />
 
         <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-2">
@@ -524,13 +682,13 @@ export default function ChurnWidget() {
               <div key={metric.label}>
                 <div className="mb-1 flex items-center justify-between text-xs">
                   <span className="text-slate-400">{metric.label}</span>
-                  <span className="font-mono text-cyan-300">
+                  <span className="font-mono text-red-400">
                     {metric.value.toFixed(3)}
                   </span>
                 </div>
-                <div className="h-1.5 overflow-hidden rounded-full bg-white/5">
+                <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-800">
                   <div
-                    className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-cyan-400 transition-all"
+                    className="h-full rounded-full bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.9)] transition-all duration-300"
                     style={{ width: `${metric.value * 100}%` }}
                   />
                 </div>
@@ -538,7 +696,7 @@ export default function ChurnWidget() {
             ))}
             <p className="pt-1 text-[11px] leading-relaxed text-slate-500">
               At this cutoff the model catches{" "}
-              <span className="text-cyan-300">
+              <span className="text-red-400">
                 {(matrix.recall * 100).toFixed(0)}%
               </span>{" "}
               of contributors who actually lapsed, and{" "}

@@ -14,15 +14,17 @@ function shortId() {
 function buildLine() {
   const time = new Date().toLocaleTimeString("en-GB");
   const events = [
-    () => "duckdb: materialized view fact_sessions updated",
-    () => `duckdb: staged ${200 + Math.floor(Math.random() * 800)} raw events`,
-    () => `xgboost: computed churn risk for user_id ${shortId()}`,
+    () => "duckdb: table main.ml_contributor_churn_training refreshed",
+    () => `duckdb: scanned ${200 + Math.floor(Math.random() * 800)} raw events`,
+    () => `xgboost: scored contributor ${shortId()}`,
     () =>
-      `xgboost: inference batch complete in ${(Math.random() * 40 + 5).toFixed(1)}ms`,
+      `shap: attribution computed in ${(Math.random() * 40 + 5).toFixed(1)}ms`,
     () => "nemotron: executive brief generated successfully",
-    () => "dbt: model metric_mrr build passed",
+    () => "dbt: model metric_contributor_retention build passed",
     () => "api: 200 GET /api/v1/customers/risk",
-    () => `pipeline: ingested ${1300 + Math.floor(Math.random() * 200)} events/sec`,
+    () => "api: 200 POST /api/v1/predict/churn",
+    () => `bigquery: partition pruned to ${180 + Math.floor(Math.random() * 8)} daily tables`,
+    () => "stl: residual sigma recomputed over 184 days",
   ];
   return `[${time}] ${events[Math.floor(Math.random() * events.length)]()}`;
 }
@@ -54,9 +56,12 @@ export default function TelemetryLog() {
       <div className="mb-3 flex items-center gap-2">
         <Terminal className="h-4 w-4 text-emerald-400" />
         <h2 className="text-sm font-semibold text-slate-200">System Telemetry</h2>
-        <span className="ml-auto flex items-center gap-1.5 text-xs text-emerald-400">
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
-          live
+        <span
+          title="Illustrative log stream. ARGO is a batch pipeline; there is no live event feed to tail."
+          className="ml-auto flex cursor-help items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-400"
+        >
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-400" />
+          simulated
         </span>
       </div>
       <div className="h-48 overflow-hidden rounded-lg border border-white/5 bg-black/40 p-3 font-mono text-xs leading-relaxed">
