@@ -22,6 +22,7 @@ import ArgoBriefing from "@/components/ArgoBriefing";
 import ChurnWidget from "@/components/ChurnWidget";
 import ColdStartNotice from "@/components/ColdStartNotice";
 import GovernancePanel from "@/components/GovernancePanel";
+import ModelArchitectureNote from "@/components/ModelArchitectureNote";
 import ModelRegistry from "@/components/ModelRegistry";
 import PipelineLineage from "@/components/PipelineLineage";
 import PlatformSpec from "@/components/PlatformSpec";
@@ -75,13 +76,13 @@ const TABS: Record<
   ml: {
     title: "ML Engine",
     blurb:
-      "Training history, measured metric drift, warehouse lineage, and the live event stream feeding the XGBoost churn classifier.",
+      "Training history, measured metric drift, warehouse lineage, and the live event stream feeding both the Cox survival model and the binary classifier.",
     exportable: true,
   },
   retention: {
     title: "Retention Command Queue",
     blurb:
-      "High-value contributors ranked by live churn score, with a threshold simulator swept against the temporal holdout.",
+      "High-value contributors ranked by predicted time-to-lapse from the Cox survival model, with a classifier threshold simulator swept against the temporal holdout.",
     exportable: true,
   },
   settings: {
@@ -288,6 +289,9 @@ export default function Home() {
   function renderRetention() {
     return (
       <section className="space-y-4">
+        {/* Both widgets below are served by different models with
+            non-comparable metrics. Collapsed by default. */}
+        <ModelArchitectureNote />
         <RiskTable />
         <ChurnWidget />
       </section>
