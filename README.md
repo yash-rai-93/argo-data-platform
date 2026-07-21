@@ -2,7 +2,7 @@
 
 **Predicts *when* an open-source contributor will go quiet, from 547,434 real GitHub Archive events across 24 production Python repositories.**
 
-> ##**[Live dashboard](https://argo-lake-phi.vercel.app)** · **[API docs](https://argo-ak57.onrender.com/docs)**
+##**[Live dashboard](https://argo-lake-phi.vercel.app)** · **[API docs](https://argo-ak57.onrender.com/docs)**
 
 | | |
 | --- | --- |
