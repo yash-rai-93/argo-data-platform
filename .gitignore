@@ -16,8 +16,11 @@ uv.lock.bak
 *.pem
 secrets/
 
-# ML artifacts
+# ML artifacts. The trained boosters are tracked on purpose: they are the
+# deliverable, and without them a fresh clone cannot serve a prediction or
+# build the Docker image.
 ml/models/*.json
+!ml/models/*.json
 
 # dbt
 target/
@@ -29,8 +32,11 @@ logs/
 # Internal planning notes (not part of the public portfolio)
 Argo_Summary.md
 
-# Data artifacts (public demo runs on regenerated synthetic data)
+# Data artifacts. Everything here is public GitHub Archive data, so the built
+# warehouse is committed to make the repo clone-and-run. Any other .duckdb file
+# stays ignored.
 *.duckdb
+!transform/argo.duckdb
 *.sqlite
 *.parquet
 data/raw/

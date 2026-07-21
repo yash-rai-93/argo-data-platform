@@ -1,0 +1,37 @@
+{
+  "objective": "survival:cox",
+  "eval_metric": "cox-nloglik",
+  "best_params": {
+    "learning_rate": 0.01,
+    "max_depth": 2,
+    "min_child_weight": 10,
+    "n_estimators": 100,
+    "subsample": 0.8
+  },
+  "cv_c_index": 0.8522494300323085,
+  "train_c_index": 0.8561300358869639,
+  "holdout_c_index": 0.7005030791344138,
+  "cv_splits": 3,
+  "features": [
+    "total_events",
+    "distinct_repos",
+    "active_days",
+    "commit_events",
+    "pull_request_events",
+    "issue_events",
+    "comment_events",
+    "engagement_events",
+    "release_events",
+    "weekend_ratio",
+    "events_per_active_day",
+    "tenure_days",
+    "days_since_last_event",
+    "velocity_30d",
+    "deceleration_score",
+    "deceleration_ratio"
+  ],
+  "targets": [
+    "duration",
+    "event"
+  ]
+}

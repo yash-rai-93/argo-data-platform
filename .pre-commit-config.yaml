@@ -8,7 +8,12 @@ repos:
       - id: end-of-file-fixer
       - id: check-yaml
       - id: check-toml
+      # The built warehouse is committed on purpose so the repo clones and runs
+      # (see .gitignore). It is the one file allowed past the 500 KB guard --
+      # the limit stays in force for everything else, including any second
+      # .duckdb that shows up by accident.
       - id: check-added-large-files
+        exclude: ^transform/argo\.duckdb$
       - id: mixed-line-ending
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
