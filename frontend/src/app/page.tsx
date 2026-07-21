@@ -20,6 +20,7 @@ import { useEffect, useState } from "react";
 
 import ArgoBriefing from "@/components/ArgoBriefing";
 import ChurnWidget from "@/components/ChurnWidget";
+import ColdStartNotice from "@/components/ColdStartNotice";
 import GovernancePanel from "@/components/GovernancePanel";
 import ModelRegistry from "@/components/ModelRegistry";
 import PipelineLineage from "@/components/PipelineLineage";
@@ -208,6 +209,11 @@ export default function Home() {
           </span>
         </div>
 
+        {/* Generic for the first 3s, then explains the scale-to-zero cold start
+            rather than leaving the skeletons pulsing with no reason given.
+            Mounted conditionally: unmounting is what resets its timer. */}
+        {loading && <ColdStartNotice />}
+
         {error && (
           <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-300">
             {error}
@@ -327,120 +333,122 @@ export default function Home() {
       <div className="light-leak-cyan" />
       <div className="light-leak-indigo" />
       <div className="flex min-h-screen">
-      <aside className="z-50 hidden h-[calc(100vh-2rem)] w-60 shrink-0 sticky top-4 m-4 flex-col rounded-3xl border border-red-950/60 bg-black/50 p-4 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.85)] backdrop-blur-2xl md:flex">
-        <div className="mb-1 flex items-center gap-2 px-2">
-          <Sparkles className="h-6 w-6 text-red-500 drop-shadow-[0_0_10px_rgba(239,68,68,0.7)]" />
-          <span className="text-lg font-bold tracking-tight">ARGO</span>
-        </div>
-        <p className="mb-6 px-2 text-[10px] leading-tight text-slate-600">
-          Contributor Decision Intelligence
-        </p>
+        <aside className="z-50 hidden h-[calc(100vh-2rem)] w-60 shrink-0 sticky top-4 m-4 flex-col rounded-3xl border border-red-950/60 bg-black/50 p-4 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.85)] backdrop-blur-2xl md:flex">
+          <div className="mb-1 flex items-center gap-2 px-2">
+            <Sparkles className="h-6 w-6 text-red-500 drop-shadow-[0_0_10px_rgba(239,68,68,0.7)]" />
+            <span className="text-lg font-bold tracking-tight">ARGO</span>
+          </div>
+          <p className="mb-6 px-2 text-[10px] leading-tight text-slate-600">
+            Contributor Decision Intelligence
+          </p>
 
-        {NAV_GROUPS.map((group) => (
-          <div key={group.heading} className="mb-4">
-            <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
-              {group.heading}
-            </p>
-            <div className="flex flex-col gap-1">
-              {group.items.map((n) => {
-                const Icon = n.icon;
-                const active = activeTab === n.id;
-                return (
-                  <button
-                    key={n.id}
-                    type="button"
-                    onClick={() => setActiveTab(n.id)}
-                    className={`flex items-center gap-3 rounded-xl border-l-2 px-3 py-2 text-sm transition-all ${
-                      active
-                        ? "bg-gradient-to-r from-red-600/20 to-transparent border-l-2 border-red-500 text-red-400 shadow-[inset_4px_0_10px_rgba(220,38,38,0.1)]"
-                        : "border-transparent text-slate-400 hover:bg-white/5 hover:text-slate-200"
-                    }`}
-                  >
-                    <Icon className="h-4 w-4" />
-                    <span className="text-xs font-bold uppercase tracking-widest">
-                      {n.label}
-                    </span>
-                    {"badge" in n && (
-                      <span className="ml-auto rounded-full bg-red-500/20 px-2 py-0.5 text-[10px] font-bold text-red-400">
-                        {n.badge}
+          {NAV_GROUPS.map((group) => (
+            <div key={group.heading} className="mb-4">
+              <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+                {group.heading}
+              </p>
+              <div className="flex flex-col gap-1">
+                {group.items.map((n) => {
+                  const Icon = n.icon;
+                  const active = activeTab === n.id;
+                  return (
+                    <button
+                      key={n.id}
+                      type="button"
+                      onClick={() => setActiveTab(n.id)}
+                      className={`flex items-center gap-3 rounded-xl border-l-2 px-3 py-2 text-sm transition-all ${
+                        active
+                          ? "bg-gradient-to-r from-red-600/20 to-transparent border-l-2 border-red-500 text-red-400 shadow-[inset_4px_0_10px_rgba(220,38,38,0.1)]"
+                          : "border-transparent text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                      }`}
+                    >
+                      <Icon className="h-4 w-4" />
+                      <span className="text-xs font-bold uppercase tracking-widest">
+                        {n.label}
                       </span>
-                    )}
-                  </button>
-                );
-              })}
+                      {"badge" in n && (
+                        <span className="ml-auto rounded-full bg-red-500/20 px-2 py-0.5 text-[10px] font-bold text-red-400">
+                          {n.badge}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
 
-        <a
-          href={PORTFOLIO_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="group mt-auto flex items-center gap-3 rounded-xl border-t border-red-950/60 px-2 pt-4 transition-colors hover:border-red-800/60"
-        >
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-red-700 to-red-500 text-sm font-bold text-white shadow-[0_0_14px_rgba(239,68,68,0.4)]">
-            A
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-slate-200 transition-colors group-hover:text-red-300">
-              Aarush Udbhav
-            </p>
-            <p className="truncate text-xs text-slate-500">Lead AI Engineer</p>
-          </div>
-          <ExternalLink className="h-3.5 w-3.5 shrink-0 text-slate-600 transition-colors group-hover:text-red-400" />
-        </a>
-      </aside>
-
-      <main className="flex-1 p-4 lg:p-6">
-        <div className="mx-auto max-w-7xl">
-          <header className="mb-4">
-            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-              <h1 className="text-2xl font-bold tracking-tight">
-                ARGO
-                <span className="ml-2 font-normal text-slate-500">
-                  Contributor Decision Intelligence
-                </span>
-              </h1>
-              <p className="font-mono text-[11px] text-slate-600">
-                open-source contributor churn &middot; GitHub Archive via
-                BigQuery
+          <a
+            href={PORTFOLIO_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group mt-auto flex items-center gap-3 rounded-xl border-t border-red-950/60 px-2 pt-4 transition-colors hover:border-red-800/60"
+          >
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-red-700 to-red-500 text-sm font-bold text-white shadow-[0_0_14px_rgba(239,68,68,0.4)]">
+              A
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-slate-200 transition-colors group-hover:text-red-300">
+                Aarush Udbhav
+              </p>
+              <p className="truncate text-xs text-slate-500">
+                Lead AI Engineer
               </p>
             </div>
+            <ExternalLink className="h-3.5 w-3.5 shrink-0 text-slate-600 transition-colors group-hover:text-red-400" />
+          </a>
+        </aside>
 
-            <div className="mt-3 flex flex-wrap items-start justify-between gap-3 border-t border-red-950/50 pt-3">
-              <div>
-                <h2 className="text-lg font-semibold text-slate-100">
-                  {TABS[activeTab].title}
-                </h2>
-                <p className="mt-0.5 max-w-3xl text-sm leading-relaxed text-slate-400">
-                  {TABS[activeTab].blurb}
+        <main className="flex-1 p-4 lg:p-6">
+          <div className="mx-auto max-w-7xl">
+            <header className="mb-4">
+              <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                <h1 className="text-2xl font-bold tracking-tight">
+                  ARGO
+                  <span className="ml-2 font-normal text-slate-500">
+                    Contributor Decision Intelligence
+                  </span>
+                </h1>
+                <p className="font-mono text-[11px] text-slate-600">
+                  open-source contributor churn &middot; GitHub Archive via
+                  BigQuery
                 </p>
               </div>
-              {TABS[activeTab].exportable && (
-                <button
-                  type="button"
-                  onClick={handleExport}
-                  disabled={isExporting}
-                  className={`inline-flex shrink-0 items-center gap-2 rounded-xl bg-gradient-to-r from-red-700 to-red-500 px-4 py-2 text-sm font-semibold text-white shadow-[0_0_20px_rgba(239,68,68,0.35)] transition-all hover:from-red-600 hover:to-red-400 hover:shadow-[0_0_28px_rgba(239,68,68,0.55)] ${
-                    isExporting
-                      ? "animate-pulse cursor-not-allowed opacity-80"
-                      : ""
-                  }`}
-                >
-                  {isExporting ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Download className="h-4 w-4" />
-                  )}
-                  {isExporting ? "Generating PDF..." : "Export Report (PDF)"}
-                </button>
-              )}
-            </div>
-          </header>
 
-          <div id="argo-workspace">{renderWorkspace()}</div>
-        </div>
-      </main>
+              <div className="mt-3 flex flex-wrap items-start justify-between gap-3 border-t border-red-950/50 pt-3">
+                <div>
+                  <h2 className="text-lg font-semibold text-slate-100">
+                    {TABS[activeTab].title}
+                  </h2>
+                  <p className="mt-0.5 max-w-3xl text-sm leading-relaxed text-slate-400">
+                    {TABS[activeTab].blurb}
+                  </p>
+                </div>
+                {TABS[activeTab].exportable && (
+                  <button
+                    type="button"
+                    onClick={handleExport}
+                    disabled={isExporting}
+                    className={`inline-flex shrink-0 items-center gap-2 rounded-xl bg-gradient-to-r from-red-700 to-red-500 px-4 py-2 text-sm font-semibold text-white shadow-[0_0_20px_rgba(239,68,68,0.35)] transition-all hover:from-red-600 hover:to-red-400 hover:shadow-[0_0_28px_rgba(239,68,68,0.55)] ${
+                      isExporting
+                        ? "animate-pulse cursor-not-allowed opacity-80"
+                        : ""
+                    }`}
+                  >
+                    {isExporting ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Download className="h-4 w-4" />
+                    )}
+                    {isExporting ? "Generating PDF..." : "Export Report (PDF)"}
+                  </button>
+                )}
+              </div>
+            </header>
+
+            <div id="argo-workspace">{renderWorkspace()}</div>
+          </div>
+        </main>
       </div>
     </>
   );
