@@ -1,3 +1,13 @@
+---
+title: Argo
+emoji: 🚀
+colorFrom: red
+colorTo: gray
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # Project ARGO
 
 **A decision-intelligence platform that predicts *when* an open-source contributor will go quiet — trained on 547,434 real GitHub Archive events, and prepared to defend every number it produces.**

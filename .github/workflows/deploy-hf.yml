@@ -1,0 +1,70 @@
+name: Deploy to Hugging Face Spaces
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# One deploy at a time. Two concurrent force-pushes to the same Space would
+# race, and the loser silently wins.
+concurrency:
+  group: deploy-hf
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      # Full history: git lfs migrate below rewrites every commit that touched
+      # the warehouse, and a shallow clone cannot do that.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          lfs: true
+
+      - name: Verify deployment configuration
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_USERNAME: ${{ vars.HF_USERNAME }}
+          HF_SPACE: ${{ vars.HF_SPACE }}
+        run: |
+          missing=""
+          [ -z "$HF_TOKEN" ] && missing="$missing HF_TOKEN(secret)"
+          [ -z "$HF_USERNAME" ] && missing="$missing HF_USERNAME(variable)"
+          [ -z "$HF_SPACE" ] && missing="$missing HF_SPACE(variable)"
+          if [ -n "$missing" ]; then
+            echo "::error::Missing configuration:$missing"
+            echo "Set them under Settings > Secrets and variables > Actions."
+            echo "  HF_TOKEN     secret,   a write token from huggingface.co/settings/tokens"
+            echo "  HF_USERNAME  variable, your Hugging Face username or org"
+            echo "  HF_SPACE     variable, the Space name, e.g. argo"
+            exit 1
+          fi
+
+      # Hugging Face rejects any pushed file over 10 MB that is not in Git LFS.
+      # transform/argo.duckdb is ~12 MB and is committed deliberately so the
+      # repo clones and runs. Converting it here rather than in the GitHub repo
+      # keeps a plain `git clone` from needing git-lfs installed.
+      #
+      # `migrate import` rewrites history, so the pointer replaces the blob in
+      # every commit that touched the file -- adding a new LFS commit on top
+      # would leave the original 12 MB blob in the history being pushed and the
+      # push would still be rejected.
+      - name: Convert warehouse to Git LFS
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git lfs install --local
+          git lfs migrate import --yes --everything --include="transform/argo.duckdb"
+          git lfs ls-files
+
+      - name: Push to Hugging Face Spaces
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_USERNAME: ${{ vars.HF_USERNAME }}
+          HF_SPACE: ${{ vars.HF_SPACE }}
+        run: |
+          git push --force \
+            "https://${HF_USERNAME}:${HF_TOKEN}@huggingface.co/spaces/${HF_USERNAME}/${HF_SPACE}" \
+            main:main
+          echo "Deployed to https://huggingface.co/spaces/${HF_USERNAME}/${HF_SPACE}"
