@@ -1,0 +1,24 @@
+# Runs on commit. Revs are set by `pre-commit autoupdate`.
+# SQLFluff / dbt hooks are added alongside the first models (P1), not before.
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      # The built warehouse is committed on purpose so the repo clones and runs
+      # (see .gitignore). It is the one file allowed past the 500 KB guard --
+      # the limit stays in force for everything else, including any second
+      # .duckdb that shows up by accident.
+      - id: check-added-large-files
+        exclude: ^transform/argo\.duckdb$
+      - id: mixed-line-ending
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.22
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format

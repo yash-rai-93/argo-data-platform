@@ -1,0 +1,48 @@
+version: 2
+
+sources:
+  - name: github_archive
+    description: >
+      Real GitHub Archive events landed into the local DuckDB warehouse by the
+      BigQuery extraction script in sql/bigquery/.
+    database: argo
+    schema: main
+    tables:
+      - name: raw_github_events
+        description: >
+          One row per public GitHub event for the curated Python repo cohort,
+          bots removed, over the configured observation and target windows.
+        columns:
+          - name: event_id
+            description: GitHub Archive event identifier.
+            tests:
+              - not_null
+          - name: event_type
+            description: Raw GitHub event type, for example PushEvent.
+            tests:
+              - not_null
+          - name: event_category
+            description: Behavioural bucket used as a model feature.
+            tests:
+              - not_null
+              - accepted_values:
+                  values:
+                    - commit
+                    - pull_request
+                    - issue
+                    - comment
+                    - engagement
+                    - release
+                    - other
+          - name: actor_login
+            description: GitHub login of the contributor, bots excluded.
+            tests:
+              - not_null
+          - name: repo_name
+            description: Fully qualified owner/repo string.
+            tests:
+              - not_null
+          - name: created_at
+            description: UTC timestamp the event was emitted.
+            tests:
+              - not_null

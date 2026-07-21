@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install Python 3.12
+        run: uv python install 3.12
+
+      - name: Sync environment
+        run: uv sync
+
+      - name: Format check
+        run: uv run ruff format --check .
+
+      - name: Lint
+        run: uv run ruff check .
+
+      # Contract tests only. They import the router and the feature schema and
+      # touch no warehouse, so they run without credentials or argo.duckdb.
+      - name: Test
+        run: uv run pytest -v
+
+      # The dbt leakage test is deliberately absent. It must run against a real
+      # warehouse, which is built from the GitHub Archive BigQuery extract using
+      # credentials CI does not have, and transform/argo.duckdb is git-ignored.
+      # Run it locally with:
+      #   cd transform && uv run dbt test --profiles-dir .
+      # Faking a feed to make this step green would assert something untrue.

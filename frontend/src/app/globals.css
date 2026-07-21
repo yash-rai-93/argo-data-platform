@@ -1,0 +1,102 @@
+@import "tailwindcss";
+
+/* Sweeps a highlight left-to-right across a skeleton block. Referenced by the
+   arbitrary utility animate-[shimmer_2s_infinite], which needs the keyframe to
+   exist in real CSS -- Tailwind does not generate it. */
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scale(1) translate(0, 0);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.1) translate(2%, 2%);
+  }
+}
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+}
+
+@theme {
+  --font-sans: var(--font-sans), sans-serif;
+  --font-mono: var(--font-mono), monospace;
+}
+
+body {
+  background-color: #050203;
+  background-image: linear-gradient(
+      rgba(248, 113, 113, 0.025) 1px,
+      transparent 1px
+    ),
+    linear-gradient(90deg, rgba(248, 113, 113, 0.025) 1px, transparent 1px);
+  background-size: 32px 32px;
+  color: #f1f5f9;
+  min-height: 100vh;
+  font-family: var(--font-sans), sans-serif;
+}
+
+.light-leak-cyan {
+  position: fixed;
+  top: -10%;
+  left: -10%;
+  width: 50vw;
+  height: 50vw;
+  background: radial-gradient(circle, rgba(220, 38, 38, 0.1) 0%, transparent 60%);
+  z-index: -1;
+  animation: breathe 12s ease-in-out infinite;
+  pointer-events: none;
+  will-change: transform, opacity;
+  transform: translateZ(0);
+}
+
+.light-leak-indigo {
+  position: fixed;
+  bottom: -20%;
+  right: -10%;
+  width: 60vw;
+  height: 60vw;
+  background: radial-gradient(circle, rgba(136, 19, 55, 0.12) 0%, transparent 60%);
+  z-index: -1;
+  animation: breathe 15s ease-in-out infinite reverse;
+  pointer-events: none;
+  will-change: transform, opacity;
+  transform: translateZ(0);
+}
+
+.recharts-wrapper:focus,
+.recharts-surface:focus,
+.recharts-wrapper * :focus {
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+@layer components {
+  .glass-panel {
+    @apply backdrop-blur-2xl bg-[#0a0507]/70 border border-red-950/60 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.8)] rounded-2xl transition-all duration-300 hover:border-red-900/70;
+  }
+
+  /* Section eyebrow: a small uppercase label that anchors a panel group. */
+  .eyebrow {
+    @apply text-[10px] font-semibold uppercase tracking-[0.18em] text-red-500/70;
+  }
+
+  /* Dense metric readout used across KPI tiles and stat rows. */
+  .stat-value {
+    @apply font-mono text-2xl font-bold text-slate-100 tabular-nums;
+  }
+}

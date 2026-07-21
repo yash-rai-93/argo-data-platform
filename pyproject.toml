@@ -1,0 +1,62 @@
+[project]
+name = "argo"
+version = "0.1.0"
+description = "Product- and decision-intelligence analytics platform (portfolio project)."
+requires-python = ">=3.12"
+dependencies = [
+    "duckdb>=1.5.4",
+    "fastapi>=0.139.2",
+    "google-cloud-bigquery>=3.42.2",
+    "google-cloud-bigquery-storage>=2.39.0",
+    "matplotlib>=3.11.1",
+    "openai>=2.46.0",
+    "pandas>=3.0.3",
+    "pyarrow>=25.0.0",
+    "pydantic>=2.13.4",
+    "python-dotenv>=1.2.2",
+    # DuckDB imports pytz lazily to convert TIMESTAMP WITH TIME ZONE into
+    # datetime. Locally it arrives via dbt-core, which --no-dev strips from the
+    # container, so every endpoint reading a timestamptz 500s. Declared here
+    # because it is a runtime requirement, not a build convenience.
+    "pytz>=2026.2",
+    "requests>=2.34.2",
+    "scikit-learn>=1.9.0",
+    "scikit-survival>=0.28.0",
+    "shap>=0.52.0",
+    "statsmodels>=0.14.6",
+    "uvicorn[standard]>=0.51.0",
+    "xgboost>=3.3.0",
+]
+
+# Argo is an application, not a distributable library: api/, ml/, and etl/ are
+# run in place from the repo root. Declaring no build backend keeps `uv sync`
+# from trying to build a wheel that nothing installs.
+[tool.uv]
+package = false
+
+# Development toolchain. Pinned floors here; exact versions live in uv.lock.
+[dependency-groups]
+dev = [
+    "ruff>=0.8",
+    "pytest>=8.3",
+    "pre-commit>=4.0",
+    "sqlfluff>=3.3",
+    "dbt-core>=1.9",
+    "dbt-duckdb>=1.10.1",
+    "sqlfluff-templater-dbt>=4.2.2",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+# Sensible, non-noisy default: pyflakes, pycodestyle, isort, bugbear, pyupgrade, comprehensions.
+select = ["E", "F", "I", "B", "UP", "C4"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+# pytest prepends the test file's own directory, not the repo root, so without
+# this `import api...` fails from inside tests/.
+pythonpath = ["."]
