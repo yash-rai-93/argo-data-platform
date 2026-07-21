@@ -59,4 +59,9 @@ ENV PATH="/app/.venv/bin:$PATH" \
 
 EXPOSE 7860
 
-CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "7860"]
+# Cloud Run injects $PORT and requires the container to honour it; 7860 is the
+# fallback so the image still runs locally and on a Hugging Face Docker Space
+# with no environment set. exec replaces the shell so uvicorn is PID 1 and
+# receives SIGTERM directly -- without it, shutdown waits for the platform's
+# kill timeout on every revision.
+CMD ["sh", "-c", "exec uvicorn api.main:app --host 0.0.0.0 --port ${PORT:-7860}"]
