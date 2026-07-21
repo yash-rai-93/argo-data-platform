@@ -28,6 +28,15 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
 
 app = FastAPI(title="ARGO Product Intelligence API", lifespan=lifespan)
 
+# Every endpoint is public, read-only, and derived from public GitHub Archive
+# data, so any origin may call it -- including whatever preview domain Vercel
+# mints per deployment, which is why the list is not enumerated.
+#
+# allow_credentials stays False deliberately. The client sends no cookies and
+# no Authorization header, and the API reads neither. Setting it True while
+# allow_origins is "*" makes Starlette echo the caller's own origin back
+# instead of "*", which would let any site on the internet make credentialed
+# requests -- a strictly weaker posture bought for no functional gain.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

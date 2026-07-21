@@ -1,6 +1,9 @@
-// Prefer the deployed API host, falling back to the local dev server.
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+// Set NEXT_PUBLIC_API_URL to the Cloud Run service URL in the Vercel project.
+// The fallback is the container's default port, so `docker run -p 7860:7860`
+// works locally with no environment set. NEXT_PUBLIC_ is required: this is
+// read in the browser, and Next.js only inlines variables with that prefix.
+export const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:7860";
 const BASE_URL = `${API_BASE_URL}/api/v1`;
 
 export interface ExecutiveMetrics {

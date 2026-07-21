@@ -3,10 +3,7 @@
 import { Boxes, Cpu, Database, GitBranch, Layers, Server } from "lucide-react";
 import { useEffect, useState } from "react";
 
-import { fetchModelCard, type ModelCard } from "@/lib/api";
-
-const API_BASE: string =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { API_BASE_URL, fetchModelCard, type ModelCard } from "@/lib/api";
 
 interface SpecRow {
   label: string;
@@ -191,7 +188,7 @@ export default function PlatformSpec() {
           title="Runtime"
           icon={Server}
           rows={[
-            { label: "API base", value: `${API_BASE}/api/v1` },
+            { label: "API base", value: `${API_BASE_URL}/api/v1` },
             { label: "Warehouse", value: "DuckDB (columnar, read-only)" },
             { label: "Transform", value: "dbt-core + dbt-duckdb" },
             { label: "Narrative LLM", value: "nvidia/nemotron via OpenRouter" },

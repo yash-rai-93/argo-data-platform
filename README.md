@@ -238,11 +238,11 @@ Three reinforcing controls:
 ```bash
 git clone <repository-url> argo && cd argo
 uv sync
-uv run uvicorn api.main:app --reload
+uv run uvicorn api.main:app --reload --port 7860
 ```
 
 ```bash
-curl -X POST http://127.0.0.1:8000/api/v1/predict/churn \
+curl -X POST http://127.0.0.1:7860/api/v1/predict/churn \
   -H 'Content-Type: application/json' \
   -d '{"total_events":41,"distinct_repos":2,"active_days":12,"commit_events":18,
        "pull_request_events":9,"issue_events":7,"comment_events":5,
