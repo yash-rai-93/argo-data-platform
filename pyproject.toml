@@ -14,6 +14,11 @@ dependencies = [
     "pyarrow>=25.0.0",
     "pydantic>=2.13.4",
     "python-dotenv>=1.2.2",
+    # DuckDB imports pytz lazily to convert TIMESTAMP WITH TIME ZONE into
+    # datetime. Locally it arrives via dbt-core, which --no-dev strips from the
+    # container, so every endpoint reading a timestamptz 500s. Declared here
+    # because it is a runtime requirement, not a build convenience.
+    "pytz>=2026.2",
     "requests>=2.34.2",
     "scikit-learn>=1.9.0",
     "scikit-survival>=0.28.0",

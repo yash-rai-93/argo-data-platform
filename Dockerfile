@@ -15,41 +15,47 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 RUN useradd --create-home --uid 1000 user
 
 WORKDIR /app
+RUN mkdir -p /home/user/.cache/matplotlib && chown user:user /app
 
-ENV UV_PYTHON=3.12 \
+# UV_NO_CACHE keeps uv's download cache out of the image: without it the sync
+# layer carries both the wheels and the unpacked environment, roughly doubling
+# it. UV_PYTHON points at the interpreter this base image already ships so uv
+# does not fetch a managed second copy.
+ENV UV_PYTHON=/usr/local/bin/python3.12 \
+    UV_PYTHON_DOWNLOADS=never \
+    UV_NO_CACHE=1 \
     UV_LINK_MODE=copy \
     PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1
+    PYTHONDONTWRITEBYTECODE=1 \
+    HOME=/home/user \
+    XDG_CACHE_HOME=/home/user/.cache \
+    MPLCONFIGDIR=/home/user/.cache/matplotlib
+
+# Switch before installing so every file is created owned by the runtime user.
+# A trailing `chown -R` over the virtualenv instead would rewrite every file
+# into a new layer and add well over a gigabyte to the image.
+USER user
 
 # Dependencies resolve from the lockfile in their own layer, so editing source
 # does not re-resolve 146 packages.
-COPY pyproject.toml uv.lock ./
+COPY --chown=user:user pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
 
 # Runtime code. ml/ carries both model artifacts; api/routers/predict.py
 # lazily imports ml.train_churn and ml.train_classifier to rebuild the Breslow
 # baseline and score the holdout, so the trainers must ship even though no
 # training happens here.
-COPY api/ ./api/
-COPY ml/ ./ml/
-COPY transform/argo.duckdb ./transform/argo.duckdb
+COPY --chown=user:user api/ ./api/
+COPY --chown=user:user ml/ ./ml/
+COPY --chown=user:user transform/argo.duckdb ./transform/argo.duckdb
 
 # Run the interpreter from the virtualenv directly instead of through `uv run`.
-# uv wants a writable project directory to re-verify the environment; a
-# non-root user does not have one, and --no-sync only suppresses part of it.
-# PYTHONPATH is explicit because sys.path[0] becomes the uvicorn script's
-# directory, not the working directory, so `import api` would otherwise fail.
+# uv wants a writable project directory to re-verify the environment on every
+# invocation, and --no-sync only suppresses part of that. PYTHONPATH is
+# explicit because sys.path[0] becomes the uvicorn script's directory, not the
+# working directory, so `import api` would otherwise fail.
 ENV PATH="/app/.venv/bin:$PATH" \
-    PYTHONPATH=/app \
-    HOME=/home/user \
-    XDG_CACHE_HOME=/home/user/.cache \
-    MPLCONFIGDIR=/home/user/.cache/matplotlib
-
-# shap imports matplotlib at module load, which writes a font cache on first
-# use. Without a writable target it warns on every cold start.
-RUN mkdir -p /home/user/.cache/matplotlib && chown -R user:user /app /home/user
-
-USER user
+    PYTHONPATH=/app
 
 EXPOSE 7860
 
