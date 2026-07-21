@@ -14,14 +14,15 @@ const EXPLAIN_AFTER_SECONDS = 3;
 
 const COLD_START_HEADING = "Waking up the analytics engine";
 
-// Stated as a ceiling, not a promise. Under-promising a cold start is worse
-// than over-promising it: a user told "10 seconds" who waits 30 concludes the
-// app is broken, while one told "up to 40" who waits 12 is pleasantly
-// surprised. Tune once real cold starts have been measured in production.
+// Measured, not estimated: a real cold start on the Render free tier was timed
+// at 1 minute 47 seconds from first byte requested to first byte served. Quoting
+// the observed figure beats a rounded guess -- a user told "40 seconds" who
+// waits 107 concludes the app is broken.
 const COLD_START_BODY =
   "This runs on a free scale-to-zero tier, so the first request after an idle " +
-  "period takes up to ~40 seconds while the container boots and the survival " +
-  "model loads. Everything after it is instant. Thanks for your patience.";
+  "period takes ~1 minute and 47 seconds while the container boots and the " +
+  "survival model loads. Everything after it is instant. Thanks for your " +
+  "patience.";
 
 /**
  * Progressive loading state for the API cold start.
