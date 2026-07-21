@@ -8,6 +8,13 @@
 
 FROM python:3.12-slim
 
+# OCI annotations. `image.source` is not decorative: GHCR reads it to attach
+# the published package to this repository and to inherit its visibility and
+# access rules. Without it the package is an orphan the repo never links to.
+LABEL org.opencontainers.image.source="https://github.com/AarushCh/Argo" \
+      org.opencontainers.image.description="Argo backend: FastAPI serving XGBoost Cox survival predictions over a bundled DuckDB warehouse." \
+      org.opencontainers.image.licenses="MIT"
+
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 # UID 1000 is the identity Spaces expects. HOME must exist and be writable
