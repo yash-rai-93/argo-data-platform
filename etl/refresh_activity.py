@@ -81,7 +81,9 @@ def plan_backfill(state: dict | None, end: date, now: datetime) -> Window | None
         if end < cursor:
             raise ValueError("Backfill cannot roll back the approved cursor.")
         if start > cursor:
-            raise ValueError("Catch up incrementally before backfilling; coverage must stay continuous.")
+            raise ValueError(
+                "Catch up incrementally before backfilling; coverage must stay continuous."
+            )
         if start >= coverage and end == cursor and state["schema_version"] == 2:
             return None
         coverage_start = min(coverage, start)
@@ -320,9 +322,11 @@ def refresh(
         ).isoformat()
         previous_days = set()
         if state is not None:
-            previous_days = set(state.get("covered_days", dates(
-                state["coverage_start"], state["through_exclusive"]
-            )))
+            previous_days = set(
+                state.get(
+                    "covered_days", dates(state["coverage_start"], state["through_exclusive"])
+                )
+            )
         queried_days = set(dates(window.start.isoformat(), window.end.isoformat()))
         retained_days = dates(retained_start, window.end.isoformat())
         if not set(retained_days).issubset(previous_days | queried_days):

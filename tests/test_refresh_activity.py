@@ -233,6 +233,37 @@ class RefreshTests(unittest.TestCase):
         self.assertEqual(state["events"], [])
         self.assertEqual(state["through_exclusive"], "2026-10-23")
 
+    def test_backfill_success_preserves_events_and_records_quality(self):
+        prior = checkpoint([event("kept", "2026-10-15")], start="2026-10-15", end="2026-10-22")
+        window = refresh.plan_backfill(prior, date(2026, 10, 23), self.now)
+        client, mocked = self.fake_bigquery()
+        with mocked:
+            self.call_refresh(state=prior, window=window)
+        state = refresh.load_state(self.directory)
+        self.assertEqual(state["schema_version"], 2)
+        self.assertEqual(state["coverage_start"], "2026-09-25")
+        self.assertEqual(state["through_exclusive"], "2026-10-23")
+        self.assertEqual(len(state["events"]), 2)
+        summary = json.loads((self.directory / "recent-activity.json").read_text())
+        self.assertEqual(summary["weekly"]["status"], "ready")
+        self.assertEqual(summary["quality"]["covered_days"], 28)
+        self.assertEqual(summary["quality"]["last_query"]["new_ids"], 1)
+        self.assertTrue(summary["quality"]["last_query"]["legacy_coverage_inherited"])
+        self.assertEqual(client.query.call_count, 2)
+
+    def test_v2_missing_coverage_day_cannot_replace_valid_checkpoint(self):
+        client, mocked = self.fake_bigquery()
+        with mocked:
+            self.call_refresh()
+        before = {path.name: path.read_bytes() for path in self.directory.iterdir()}
+        state = refresh.load_state(self.directory)
+        state["covered_days"].pop()
+        with self.assertRaises(ValueError):
+            refresh.save_snapshot(state, self.directory)
+        self.assertEqual(
+            before, {path.name: path.read_bytes() for path in self.directory.iterdir()}
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

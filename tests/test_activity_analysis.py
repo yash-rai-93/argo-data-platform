@@ -58,14 +58,16 @@ class WeeklyTests(unittest.TestCase):
         self.assertEqual(snapshot_quality(snapshot)["zero_event_days"], 28)
 
     def test_windows_are_half_open_and_contributors_are_not_summed_across_repos(self):
-        snapshot = state([
-            event("old", "2026-10-14"),
-            event("before", "2026-10-15", "alice"),
-            event("prior-end", "2026-10-21", "bob"),
-            event("boundary", "2026-10-22", "alice"),
-            event("same-actor", "2026-10-23", "alice", "numpy/numpy"),
-            event("new", "2026-10-28", "carol", category="issue"),
-        ])
+        snapshot = state(
+            [
+                event("old", "2026-10-14"),
+                event("before", "2026-10-15", "alice"),
+                event("prior-end", "2026-10-21", "bob"),
+                event("boundary", "2026-10-22", "alice"),
+                event("same-actor", "2026-10-23", "alice", "numpy/numpy"),
+                event("new", "2026-10-28", "carol", category="issue"),
+            ]
+        )
         result = weekly_comparison(snapshot)
         self.assertEqual(result["previous"]["events"], 2)
         self.assertEqual(result["current"]["events"], 3)
@@ -77,11 +79,13 @@ class WeeklyTests(unittest.TestCase):
         self.assertEqual(result["current"]["pr_issue_events"], 1)
 
     def test_repository_and_category_deltas_reconcile_including_rename(self):
-        snapshot = state([
-            event("1", "2026-10-15", repo="tiangolo/fastapi"),
-            event("2", "2026-10-22", repo="fastapi/fastapi"),
-            event("3", "2026-10-23", repo="fastapi/fastapi", category="pull_request"),
-        ])
+        snapshot = state(
+            [
+                event("1", "2026-10-15", repo="tiangolo/fastapi"),
+                event("2", "2026-10-22", repo="fastapi/fastapi"),
+                event("3", "2026-10-23", repo="fastapi/fastapi", category="pull_request"),
+            ]
+        )
         result = weekly_comparison(snapshot)
         repos = result["repository_drivers"]
         self.assertEqual(len(repos), 1)

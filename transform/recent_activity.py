@@ -31,14 +31,13 @@ def period(events: list[dict], start: str, end: str) -> dict:
         "end_exclusive": end,
         "events": len(rows),
         "active_contributors": len({row["actor_login"] for row in rows}),
-        "pr_issue_events": sum(
-            row["event_category"] in ("pull_request", "issue") for row in rows
-        ),
+        "pr_issue_events": sum(row["event_category"] in ("pull_request", "issue") for row in rows),
     }
 
 
 def drivers(previous: list[dict], current: list[dict], field: str) -> list[dict]:
     """Return exhaustive additive event deltas, ordered by absolute effect."""
+
     def key(row: dict) -> str:
         return canonical_repo(row[field]) if field == "repo_name" else row[field]
 
@@ -142,6 +141,7 @@ def snapshot_quality(state: dict) -> dict:
         ),
     }
 
+
 def activity_investigation(state: dict) -> dict:
     """Measure the peak day and prior-day drivers without inferring causality."""
     all_days = dates(state["coverage_start"], state["through_exclusive"])
@@ -154,9 +154,7 @@ def activity_investigation(state: dict) -> dict:
     index = all_days.index(peak["start"])
     before = daily[index - 1] if index else None
     rows = [e for e in events if e["created_at"][:10] == peak["start"]]
-    previous = (
-        [e for e in events if e["created_at"][:10] == before["start"]] if before else []
-    )
+    previous = [e for e in events if e["created_at"][:10] == before["start"]] if before else []
     actor_counts = Counter(e["actor_login"] for e in rows)
     top_actor_events = max(actor_counts.values(), default=0)
     repos = Counter(canonical_repo(e["repo_name"]) for e in rows)
@@ -171,9 +169,7 @@ def activity_investigation(state: dict) -> dict:
         "previous_day": before,
         "peak_share_percent": round(100 * peak["events"] / len(events), 2) if events else None,
         "top_actor_events": top_actor_events,
-        "top_actor_share_percent": (
-            round(100 * top_actor_events / len(rows), 2) if rows else None
-        ),
+        "top_actor_share_percent": (round(100 * top_actor_events / len(rows), 2) if rows else None),
         "peak_events_excluding_top_actor": len(rows) - top_actor_events,
         "peak_repositories": [
             {"name": name, "events": count}
