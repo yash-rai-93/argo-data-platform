@@ -1,13 +1,13 @@
 {
   "best_params": {
-    "xgb__learning_rate": 0.01,
+    "xgb__learning_rate": 0.05,
     "xgb__max_depth": 2,
     "xgb__min_child_weight": 5,
-    "xgb__n_estimators": 400,
+    "xgb__n_estimators": 100,
     "xgb__subsample": 0.6
   },
-  "best_cv_roc_auc": 0.8137110453343714,
-  "scale_pos_weight": 0.9564516129032258,
+  "best_cv_roc_auc": 0.8153115229408403,
+  "scale_pos_weight": 0.9501206757843926,
   "cv_splits": 3,
   "features": [
     "total_events",
