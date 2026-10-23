@@ -54,10 +54,11 @@ jobs:
         run: docker build -t argo-check .
       - name: Verify warehouse, models, and API
         run: |
-          docker run -d --name argo-check -p 7860:7860 argo-check
+          docker run -d --name argo-check --memory=512m --cpus=1 -p 7860:7860 argo-check
           for i in $(seq 1 120); do
             if curl -fs --max-time 2 http://localhost:7860/health > /dev/null; then
               docker exec argo-check python -m api.smoke_test
+              docker stats --no-stream --format 'Memory after smoke: {{.MemUsage}}' argo-check
               exit 0
             fi
             sleep 1
