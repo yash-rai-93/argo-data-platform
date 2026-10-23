@@ -152,6 +152,7 @@ The report is tied to the immutable snapshot commit above. To reproduce in a
 separate checkout:
 
 ```bash
+git fetch origin d7e27ebe3b7d665fb7642a8cfad9497f7a15fbf5
 git worktree add --detach ../argo-investigation d7e27ebe3b7d665fb7642a8cfad9497f7a15fbf5
 cd ../argo-investigation
 uv sync --frozen
@@ -171,9 +172,9 @@ block from that checkout (Bash syntax):
 uv run python - <<'PY'
 from collections import Counter
 from datetime import date, timedelta
+from pathlib import Path
 
 from etl.refresh_activity import load_state
-from pathlib import Path
 from transform.recent_activity import period
 
 state = load_state(Path("data"))

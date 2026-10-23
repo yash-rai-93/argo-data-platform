@@ -18,7 +18,7 @@ ARGO connects public GitHub Archive events, a tested DuckDB/dbt warehouse, two X
 | Primary survival result | **0.7063 holdout C-index** |
 | Companion classifier result | **0.7608 holdout ROC-AUC** |
 | Evaluation | Entry-date-ordered 80/20 split; 3-fold expanding-window CV |
-| Validation | **39 Python tests**, **8 dbt data tests**, frontend and container checks |
+| Validation | **54 Python tests**, **8 dbt data tests**, frontend and container checks |
 | Recent activity | Manually triggered incremental refreshes with an explicit query cap |
 
 **Two data paths are deliberately separate.** Model training, benchmarks, the retention queue, and historical charts use the fixed **July–December 2023 study**. The recent-activity panel uses its own approved snapshot and displays its coverage and update time. Refreshing recent activity does **not** retrain the models or establish their accuracy on current contributors.
@@ -355,7 +355,7 @@ See [the deployment runbook](docs/DEPLOYMENT.md) for full setup, GCP permissions
 
 | Workflow | Trigger and checks |
 | --- | --- |
-| **CI** | Main pushes and PRs: Ruff format/lint, 39 Python tests, recent-checkpoint validation, dbt build with 8 data tests, SQL lint, frontend lint/build, maintenance-workflow syntax/ShellCheck, and container API smoke under **512 MiB / 1 CPU**. |
+| **CI** | Main pushes and PRs: Ruff format/lint, 54 Python tests, recent-checkpoint validation, dbt build with 8 data tests, SQL lint, frontend lint/build, maintenance-workflow syntax/ShellCheck, and container API smoke under **512 MiB / 1 CPU**. |
 | **Data maintenance (manual)** | Estimate/apply recent increments, or estimate/rebuild the full historical artifact set. An ordinary push does not query BigQuery or retrain models. |
 | **Verify live deployment** | Manual verification of the hosted API, prediction response, frontend API origin, HTTP responses, and CORS. |
 | **Publish container** | Manual or `v*` tag trigger; build and smoke-test the image before publishing to `ghcr.io/yash-rai-93/argo-backend`. Images are available when the publishing workflow completes successfully. |
