@@ -1,0 +1,89 @@
+name: Verify promoted rebuild 39998805393
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened]
+    paths:
+      - .github/workflows/verify-promoted-39998805393.yml
+
+permissions:
+  contents: read
+
+jobs:
+  deployed-artifacts:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'chore/verify-deployed-rebuild-39998805393'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 3257eff1f1996b910aef758c4a292b7f4ea13530
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv python install 3.12
+      - run: uv sync --frozen --no-dev
+      - name: Wait for matching backend metadata and frontend charts
+        run: |
+          uv run --no-sync python -u - <<'PY'
+          import hashlib
+          import json
+          import time
+          from pathlib import Path
+
+          import duckdb
+          import requests
+
+          api = "https://argo-api-yash.onrender.com"
+          frontend = "https://argo-data-platform.vercel.app"
+          metadata = json.loads(Path("argo-artifacts.json").read_text())
+          params = json.loads(Path("ml/models/churn_xgb_params.json").read_text())
+          with duckdb.connect("transform/argo.duckdb", read_only=True) as db:
+              cohort = db.execute("select count(*) from main.ml_contributor_churn_training").fetchone()[0]
+              source_rows = db.execute("select count(*) from main.raw_github_events").fetchone()[0]
+              invocation = db.execute(
+                  "select invocation_id from main.meta_dbt_runs order by run_at desc limit 1"
+              ).fetchone()[0]
+          expected = (cohort, source_rows, params["best_params"]["xgb__n_estimators"], invocation)
+          print(f"Expected cohort, source rows, trees, dbt invocation: {expected}")
+          deadline = time.monotonic() + 600
+          with requests.Session() as session:
+              while time.monotonic() < deadline:
+                  try:
+                      card_response = session.get(api + "/api/v1/predict/model-card", timeout=30)
+                      card_response.raise_for_status()
+                      card = card_response.json()
+                      health_response = session.get(api + "/api/v1/metrics/governance/health", timeout=30)
+                      health_response.raise_for_status()
+                      health = health_response.json()
+                      actual = (
+                          card["data"]["cohort_rows"], card["data"]["source_rows"],
+                          card["n_trees"], health["invocation_id"],
+                      )
+                      if actual != expected:
+                          raise RuntimeError(f"Waiting for backend artifact set; currently {actual}")
+                      for name in (
+                          "frontend/public/assets/survival_curves.png",
+                          "frontend/public/assets/shap_summary.png",
+                      ):
+                          public_path = name.removeprefix("frontend/public")
+                          response = session.get(
+                              frontend + public_path,
+                              params={"rebuild": metadata["run_id"]},
+                              timeout=30,
+                          )
+                          response.raise_for_status()
+                          if hashlib.sha256(response.content).hexdigest() != metadata["sha256"][name]:
+                              raise RuntimeError(f"Waiting for frontend chart: {public_path}")
+                      print(f"PASS backend artifact metadata: {actual}")
+                      print("PASS frontend survival and SHAP chart checksums")
+                      break
+                  except (requests.RequestException, ValueError, KeyError, RuntimeError) as error:
+                      print(str(error))
+                      time.sleep(10)
+              else:
+                  raise RuntimeError("Deployments did not serve the promoted artifact set within 10 minutes")
+          PY
+      - name: Smoke test promoted API
+        run: uv run --no-sync python -m api.smoke_test --base-url https://argo-api-yash.onrender.com --timeout 90
