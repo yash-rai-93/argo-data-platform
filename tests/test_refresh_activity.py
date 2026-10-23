@@ -15,17 +15,23 @@ from etl import refresh_activity as refresh
 
 def event(identifier="1", day="2026-10-20", actor="alice"):
     return {
-        "event_id": identifier, "event_type": "PushEvent",
-        "event_category": "commit", "actor_login": actor,
-        "repo_name": "python/cpython", "created_at": f"{day}T12:00:00+00:00",
+        "event_id": identifier,
+        "event_type": "PushEvent",
+        "event_category": "commit",
+        "actor_login": actor,
+        "repo_name": "python/cpython",
+        "created_at": f"{day}T12:00:00+00:00",
     }
 
 
 def checkpoint(events=None, start="2026-10-16", end="2026-10-23"):
     return {
-        "schema_version": 1, "coverage_start": start, "through_exclusive": end,
+        "schema_version": 1,
+        "coverage_start": start,
+        "through_exclusive": end,
         "refreshed_at": "2026-10-24T12:00:00+00:00",
-        "events": events or [], "query": {"job_id": "test"},
+        "events": events or [],
+        "query": {"job_id": "test"},
     }
 
 
@@ -55,7 +61,8 @@ class RefreshTests(unittest.TestCase):
     def test_increment_overlaps_two_days_and_caps_long_gaps(self):
         window = refresh.plan_window(
             checkpoint(start="2026-07-01", end="2026-07-10"),
-            date(2026, 10, 23), self.now,
+            date(2026, 10, 23),
+            self.now,
         )
         self.assertEqual(window.start, date(2026, 7, 8))
         self.assertEqual(window.end, date(2026, 8, 8))
@@ -63,8 +70,10 @@ class RefreshTests(unittest.TestCase):
 
     def test_exact_daily_tables_cross_the_year_boundary(self):
         window = refresh.Window(
-            date(2025, 12, 31), date(2026, 1, 2),
-            date(2025, 12, 31), date(2026, 1, 2),
+            date(2025, 12, 31),
+            date(2026, 1, 2),
+            date(2025, 12, 31),
+            date(2026, 1, 2),
         )
         sql = refresh.render_sql(window)
         self.assertIn("githubarchive.day.20251231", sql)
@@ -75,8 +84,10 @@ class RefreshTests(unittest.TestCase):
 
     def test_upsert_deduplicates_retries_and_accepts_late_arrivals(self):
         window = refresh.Window(
-            date(2026, 10, 21), date(2026, 10, 24),
-            date(2026, 10, 16), date(2026, 10, 24),
+            date(2026, 10, 21),
+            date(2026, 10, 24),
+            date(2026, 10, 16),
+            date(2026, 10, 24),
         )
         old = [event("1", "2026-10-21")]
         new = [event("1", "2026-10-21"), event("2", "2026-10-22")]
@@ -92,8 +103,10 @@ class RefreshTests(unittest.TestCase):
 
     def test_old_events_expire_without_losing_the_coverage_boundary(self):
         window = refresh.Window(
-            date(2026, 10, 21), date(2026, 10, 24),
-            date(2026, 1, 1), date(2026, 10, 24),
+            date(2026, 10, 21),
+            date(2026, 10, 24),
+            date(2026, 1, 1),
+            date(2026, 10, 24),
         )
         result = refresh.merge_events(
             [event("old", "2026-01-02"), event("new", "2026-10-20")], [], window
@@ -129,7 +142,9 @@ class RefreshTests(unittest.TestCase):
         client = MagicMock()
         estimate = SimpleNamespace(total_bytes_processed=estimated)
         job = SimpleNamespace(
-            job_id="new-job", total_bytes_processed=100, total_bytes_billed=100,
+            job_id="new-job",
+            total_bytes_processed=100,
+            total_bytes_billed=100,
             result=lambda: [event()],
         )
         client.query.side_effect = [estimate, job]
@@ -140,9 +155,13 @@ class RefreshTests(unittest.TestCase):
 
     def call_refresh(self, **overrides):
         kwargs = {
-            "project": "test-project", "location": "US", "state": None,
+            "project": "test-project",
+            "location": "US",
+            "state": None,
             "window": refresh.plan_window(None, date(2026, 10, 23), self.now),
-            "directory": self.directory, "dry_run": False, "maximum_bytes_billed": 1000,
+            "directory": self.directory,
+            "dry_run": False,
+            "maximum_bytes_billed": 1000,
         }
         kwargs.update(overrides)
         return refresh.refresh(**kwargs)
@@ -190,15 +209,19 @@ class RefreshTests(unittest.TestCase):
         ]
         with mocked, self.assertRaises(RuntimeError):
             self.call_refresh()
-        self.assertEqual(before, {path.name: path.read_bytes() for path in self.directory.iterdir()})
+        self.assertEqual(
+            before, {path.name: path.read_bytes() for path in self.directory.iterdir()}
+        )
 
     def test_all_zero_events_can_advance_after_a_successful_query(self):
         client, mocked = self.fake_bigquery()
         client.query.side_effect = [
             SimpleNamespace(total_bytes_processed=100),
             SimpleNamespace(
-                job_id="empty", total_bytes_processed=100,
-                total_bytes_billed=100, result=list,
+                job_id="empty",
+                total_bytes_processed=100,
+                total_bytes_billed=100,
+                result=list,
             ),
         ]
         with mocked:

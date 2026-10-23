@@ -20,4 +20,6 @@ def recent_activity() -> dict:
             raise ValueError("Unsupported snapshot status.")
         return snapshot
     except (OSError, ValueError, KeyError) as error:
-        raise HTTPException(status_code=503, detail="Recent activity snapshot unavailable.") from error
+        raise HTTPException(
+            status_code=503, detail="Recent activity snapshot unavailable."
+        ) from error

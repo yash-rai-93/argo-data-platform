@@ -13,8 +13,11 @@ from api.routers import activity
 def test_recent_activity_is_credential_free(tmp_path, monkeypatch):
     path = tmp_path / "snapshot.json"
     snapshot = {
-        "schema_version": 1, "status": "ready", "mode": "manual",
-        "coverage_start": "2026-10-16", "through_exclusive": "2026-10-23",
+        "schema_version": 1,
+        "status": "ready",
+        "mode": "manual",
+        "coverage_start": "2026-10-16",
+        "through_exclusive": "2026-10-23",
         "event_count": 17,
     }
     path.write_text(json.dumps(snapshot))

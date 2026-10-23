@@ -75,8 +75,7 @@ def render_sql(window: Window) -> str:
     for offset in range(count):
         day = window.start + timedelta(days=offset)
         selections.append(
-            "select id, type, actor, repo, created_at "
-            f"from `githubarchive.day.{day:%Y%m%d}`"
+            f"select id, type, actor, repo, created_at from `githubarchive.day.{day:%Y%m%d}`"
         )
     template = (_ROOT / "sql/bigquery/extract_recent_activity.sql").read_text()
     return template.replace("__DAILY_TABLES__", "\n        union all\n        ".join(selections))
@@ -84,9 +83,10 @@ def render_sql(window: Window) -> str:
 
 def normalize_event(row: dict) -> dict:
     """Validate the event contract before accepting a new checkpoint."""
-    event = {key: str(row[key]) for key in (
-        "event_id", "event_type", "event_category", "actor_login", "repo_name"
-    )}
+    event = {
+        key: str(row[key])
+        for key in ("event_id", "event_type", "event_category", "actor_login", "repo_name")
+    }
     if any(not value or value == "None" for value in event.values()):
         raise ValueError("Event has a missing identity or scope field.")
     timestamp = row["created_at"]
@@ -132,20 +132,27 @@ def summarize(state: dict, state_sha256: str) -> dict:
     for offset in range((end - start).days):
         day = (start + timedelta(days=offset)).isoformat()
         bucket = days.get(day, {"events": 0, "contributors": set()})
-        daily.append({
-            "date": day, "events": bucket["events"],
-            "contributors": len(bucket["contributors"]),
-        })
+        daily.append(
+            {
+                "date": day,
+                "events": bucket["events"],
+                "contributors": len(bucket["contributors"]),
+            }
+        )
     return {
-        "schema_version": 1, "status": "ready", "mode": "manual",
+        "schema_version": 1,
+        "status": "ready",
+        "mode": "manual",
         "source": "GH Archive via BigQuery",
-        "coverage_start": start.isoformat(), "through_exclusive": end.isoformat(),
+        "coverage_start": start.isoformat(),
+        "through_exclusive": end.isoformat(),
         "refreshed_at": state["refreshed_at"],
         "last_event_at": max((e["created_at"] for e in events), default=None),
         "event_count": len(events),
         "active_contributors": len({e["actor_login"] for e in events}),
         "pr_issue_events": sum(e["event_category"] in ("pull_request", "issue") for e in events),
-        "daily": daily, "query": state["query"],
+        "daily": daily,
+        "query": state["query"],
         "state_sha256": state_sha256,
     }
 
@@ -221,8 +228,14 @@ def bounded_bytes(value: str) -> int:
 
 
 def refresh(
-    *, project: str, location: str, state: dict | None, window: Window,
-    directory: Path, dry_run: bool, maximum_bytes_billed: int | None,
+    *,
+    project: str,
+    location: str,
+    state: dict | None,
+    window: Window,
+    directory: Path,
+    dry_run: bool,
+    maximum_bytes_billed: int | None,
 ) -> dict:
     """Always estimate first; only an explicitly capped apply can query data."""
     if not project:
@@ -244,10 +257,13 @@ def refresh(
         if estimated is None:
             raise ValueError("BigQuery did not provide an estimate; apply is refused.")
         report = {
-            "start": window.start.isoformat(), "end_exclusive": window.end.isoformat(),
+            "start": window.start.isoformat(),
+            "end_exclusive": window.end.isoformat(),
             "requested_end": window.requested_end.isoformat(),
-            "caught_up": window.caught_up, "estimated_bytes": estimated,
-            "maximum_bytes_billed": maximum_bytes_billed, "dry_run": dry_run,
+            "caught_up": window.caught_up,
+            "estimated_bytes": estimated,
+            "maximum_bytes_billed": maximum_bytes_billed,
+            "dry_run": dry_run,
             "sql_sha256": hashlib.sha256(sql.encode()).hexdigest(),
         }
         print(json.dumps(report, indent=2))
@@ -256,9 +272,10 @@ def refresh(
         if estimated > maximum_bytes_billed:
             raise ValueError("Estimate exceeds your cap; no data query was executed.")
         job = client.query(
-            sql, job_config=bigquery.QueryJobConfig(
+            sql,
+            job_config=bigquery.QueryJobConfig(
                 maximum_bytes_billed=maximum_bytes_billed, use_query_cache=True
-            )
+            ),
         )
         incoming = [dict(row.items()) for row in job.result()]
         events = merge_events(state["events"] if state else [], incoming, window)
@@ -271,7 +288,9 @@ def refresh(
             "refreshed_at": datetime.now(UTC).isoformat(),
             "events": events,
             "query": {
-                **report, "job_id": job.job_id, "project": project,
+                **report,
+                "job_id": job.job_id,
+                "project": project,
                 "bytes_processed": job.total_bytes_processed,
                 "bytes_billed": job.total_bytes_billed,
                 "run_id": os.environ.get("GITHUB_RUN_ID"),
@@ -305,8 +324,12 @@ def main() -> None:
             print("Already caught up to the requested end; no BigQuery call.")
             return
         report = refresh(
-            project=args.project, location=args.location, state=state, window=window,
-            directory=_DATA, dry_run=not args.apply,
+            project=args.project,
+            location=args.location,
+            state=state,
+            window=window,
+            directory=_DATA,
+            dry_run=not args.apply,
             maximum_bytes_billed=args.maximum_bytes_billed,
         )
         summary = os.environ.get("GITHUB_STEP_SUMMARY")
