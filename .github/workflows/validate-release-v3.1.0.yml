@@ -117,6 +117,7 @@ jobs:
                 waitUntil: "domcontentloaded", timeout: 90000,
               });
               await mobile.getByText("Active Contributors (30d)", { exact: true }).waitFor();
+              pass("mobile overview loads");
               const mobileNavigationVisible = await mobile.getByRole("button", { name: /^Retention\b/i }).isVisible();
               console.log("Mobile tab navigation visible: " + mobileNavigationVisible);
               await fs.writeFile(path.join(out, "browser-check.json"), JSON.stringify({
