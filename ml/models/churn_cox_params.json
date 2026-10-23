@@ -4,13 +4,13 @@
   "best_params": {
     "learning_rate": 0.01,
     "max_depth": 2,
-    "min_child_weight": 10,
+    "min_child_weight": 5,
     "n_estimators": 100,
-    "subsample": 0.8
+    "subsample": 0.6
   },
-  "cv_c_index": 0.8522494300323085,
-  "train_c_index": 0.8561300358869639,
-  "holdout_c_index": 0.7005030791344138,
+  "cv_c_index": 0.8516859097080487,
+  "train_c_index": 0.8611460138842335,
+  "holdout_c_index": 0.7062911243851946,
   "cv_splits": 3,
   "features": [
     "total_events",

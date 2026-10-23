@@ -1,0 +1,15 @@
+{
+  "source_commit": "1545ec50330f5518ca114e06faaf1ce530798474",
+  "run_id": "39998805393",
+  "source": "githubarchive.day.2023*",
+  "window": "[2023-07-01, 2024-01-01)",
+  "sha256": {
+    "transform/argo.duckdb": "00e9113f20173b24aaacc05a1c619fa0ac84e6380169c14c2b5fb31e76f23274",
+    "ml/models/churn_cox.json": "7310e7b8aacd7561c025f5b5092d0e6112df9a2b967259854b4bf7bcd09d224e",
+    "ml/models/churn_cox_params.json": "29e32da49374e9119c96fbc6de96129b435b09c0b526978c3bc6b26d0b9759cf",
+    "ml/models/churn_xgb.json": "a09c4f0a08120f1e00d35053fc1cee631f9cba40ebe6adad487bd1537c2b6265",
+    "ml/models/churn_xgb_params.json": "d432f329f848f9442c7a251a4bf51077751128a4db1191f490cb781d69db8f10",
+    "frontend/public/assets/survival_curves.png": "6f8a605eb833d139a700f141f5d2142fd6999a51e9b37f27774b1538c5769947",
+    "frontend/public/assets/shap_summary.png": "f0d612b8eb25685587fdf0a0436227eb005f4667c11a3ee4adf6299c4009331a"
+  }
+}
