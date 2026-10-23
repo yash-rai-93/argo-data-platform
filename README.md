@@ -4,6 +4,9 @@
 
 **[Live dashboard](https://argo-data-platform.vercel.app/) · [API docs](https://argo-api-yash.onrender.com/docs)**
 
+Recent activity can be updated on demand with the [manual incremental refresh](docs/MANUAL_REFRESH.md). The recent-activity panel has its own checkpoint and freshness labels; model evaluation and the retention queue continue to use the fixed 2023 study. Refreshes have no automatic schedule.
+
+
 The committed warehouse, models, and charts were regenerated in [rebuild 39998805393](https://github.com/yash-rai-93/argo-data-platform/actions/runs/39998805393) using GCP project `argo-data-yash-93`. [argo-artifacts.json](argo-artifacts.json) records the source commit, study window, and file checksums. See the [deployment runbook](docs/DEPLOYMENT.md) for configuration and verification.
 
 | | |
@@ -13,7 +16,7 @@ The committed warehouse, models, and charts were regenerated in [rebuild 3999880
 | **Cohort** | 3,031 eligible contributors; train / holdout: 2,424 / 607 |
 | **Data** | `githubarchive.day.*` via BigQuery, 2023-07-01 → 2024-01-01 |
 | **Stack** | Next.js 16 · FastAPI · DuckDB · dbt 1.12 · XGBoost 3.3 · scikit-survival |
-| **Tests** | 20 Python tests · 8 dbt data tests, including the leakage assertion |
+| **Tests** | Python contract and refresh tests · 8 dbt data tests, including the leakage assertion |
 
 ---
 
@@ -327,7 +330,7 @@ GitHub repository. The checked-in `render.yaml` configures the backend; the
 
 The image includes the public GitHub Archive warehouse and matching trained
 models. Serving predictions needs no BigQuery credentials or runtime extraction.
-This is a historical 2023-07-01 to 2024-01-01 snapshot, not a live activity feed.
+The model study is a historical 2023-07-01 to 2024-01-01 snapshot. The separate recent-activity panel updates only after a manual refresh is approved and deployed.
 
 Set Vercel's `NEXT_PUBLIC_API_URL` to the actual new Render HTTPS origin, without
 `/api/v1` or a trailing slash. It is inlined at build time, so changing it requires

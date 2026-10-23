@@ -2,7 +2,6 @@
 
 import { motion } from "framer-motion";
 import {
-  Activity,
   Cpu,
   Database,
   Download,
@@ -27,6 +26,7 @@ import ModelRegistry from "@/components/ModelRegistry";
 import PipelineLineage from "@/components/PipelineLineage";
 import PlatformSpec from "@/components/PlatformSpec";
 import RevenueChart from "@/components/RevenueChart";
+import RecentActivity from "@/components/RecentActivity";
 import RiskTable from "@/components/RiskTable";
 import Sparkline from "@/components/Sparkline";
 import TelemetryLog from "@/components/TelemetryLog";
@@ -102,7 +102,6 @@ export default function Home() {
   const [reasoning, setReasoning] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(true);
-  const [ingest, setIngest] = useState<number>(1420);
   const [contributorSpark, setContributorSpark] = useState<number[]>([]);
   const [throughputSpark, setThroughputSpark] = useState<number[]>([]);
   const [retentionSpark, setRetentionSpark] = useState<number[]>([]);
@@ -137,14 +136,6 @@ export default function Home() {
     fetchRetentionSparkline().then(setRetentionSpark);
   }, []);
 
-  useEffect(() => {
-    if (activeTab !== "command") return;
-    const id = setInterval(
-      () => setIngest(1380 + Math.floor(Math.random() * 120)),
-      1500,
-    );
-    return () => clearInterval(id);
-  }, [activeTab]);
 
   const cards = metrics
     ? [
@@ -178,35 +169,15 @@ export default function Home() {
   function renderCommandSuite() {
     return (
       <section className="space-y-4">
+        <RecentActivity />
         <div className="glass-panel flex flex-wrap items-center gap-x-6 gap-y-2 px-5 py-2.5 text-xs">
-          <span className="flex items-center gap-2">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
-            </span>
-            <span className="font-medium text-slate-300">Pipeline</span>
-            <span className="text-emerald-300">Operational</span>
-          </span>
-          <span className="flex items-center gap-1.5 text-slate-500">
-            <Activity className="h-3.5 w-3.5 text-red-500" />
-            Ingestion
-            <span className="font-mono text-red-300">
-              {ingest.toLocaleString()}/s
-            </span>
-          </span>
-          <span className="flex items-center gap-1.5 text-slate-500">
+          <span className="flex items-center gap-1.5 text-slate-400">
             <Database className="h-3.5 w-3.5 text-red-500" />
-            Warehouse
-            <span className="font-mono text-slate-300">
-              547,434 events &middot; 24 repos
-            </span>
+            Historical study · 547,434 events · 24 repos
           </span>
-          <span className="ml-auto flex items-center gap-1.5 text-slate-500">
+          <span className="flex items-center gap-1.5 text-slate-400">
             <TrendingUp className="h-3.5 w-3.5 text-red-500" />
-            Window
-            <span className="font-mono text-slate-300">
-              2023-07-01 → 2024-01-01
-            </span>
+            2023-07-01 → 2024-01-01
           </span>
         </div>
 

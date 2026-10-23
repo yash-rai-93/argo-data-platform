@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.routers import customers, intelligence, metrics, predict
+from api.routers import activity, customers, intelligence, metrics, predict
 
 
 @asynccontextmanager
@@ -45,6 +45,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(activity.router)
 app.include_router(metrics.router)
 app.include_router(intelligence.router)
 app.include_router(predict.router)

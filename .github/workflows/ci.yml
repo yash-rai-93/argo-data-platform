@@ -22,6 +22,8 @@ jobs:
       - run: uv run ruff format --check --diff .
       - run: uv run ruff check .
       - run: uv run pytest -v
+      - name: Validate recent activity checkpoint
+        run: uv run python -m etl.refresh_activity --validate-only
       # The committed historical warehouse makes these checks credential-free.
       - name: Validate dbt models and leakage checks
         working-directory: transform

@@ -53,6 +53,8 @@ RUN uv sync --frozen --no-dev --no-install-project
 # baseline and score the holdout, so the trainers must ship even though no
 # training happens here.
 COPY --chown=user:user api/ ./api/
+# Only the small promoted aggregate ships; the ingestion checkpoint stays offline.
+COPY --chown=user:user data/recent-activity.json ./data/recent-activity.json
 COPY --chown=user:user ml/ ./ml/
 COPY --chown=user:user transform/argo.duckdb ./transform/argo.duckdb
 

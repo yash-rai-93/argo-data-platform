@@ -26,6 +26,7 @@ PREDICTION_INPUT = {
 }
 _ROUTES = (
     "/health",
+    "/api/v1/activity/recent",
     "/api/v1/metrics/executive",
     "/api/v1/metrics/trend",
     "/api/v1/metrics/contributors/sparkline",
@@ -59,6 +60,10 @@ def main() -> None:
                 raise RuntimeError(f"Empty JSON response for {path}")
             if path == "/health" and data.get("status") != "ok":
                 raise RuntimeError("Health check did not report ok")
+            if path == "/api/v1/activity/recent" and data.get("status") not in (
+                "not_initialized", "ready"
+            ):
+                raise RuntimeError("Recent activity status is invalid")
             print(f"PASS GET {path}")
 
         response = session.post(
