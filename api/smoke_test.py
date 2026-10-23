@@ -72,9 +72,7 @@ def main() -> None:
             raise RuntimeError("Survival curve or SHAP attribution is incomplete")
         print("PASS POST /api/v1/predict/churn")
 
-        invalid = session.post(
-            f"{base}/api/v1/predict/churn", json={}, timeout=args.timeout
-        )
+        invalid = session.post(f"{base}/api/v1/predict/churn", json={}, timeout=args.timeout)
         if invalid.status_code != 422:
             raise RuntimeError("An invalid prediction request was not rejected")
         print("PASS invalid prediction rejected")
