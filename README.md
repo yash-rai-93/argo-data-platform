@@ -2,13 +2,15 @@
 
 **Predicts *when* an open-source contributor will go quiet, from 547,434 real GitHub Archive events across 24 production Python repositories.**
 
-The deployment is being recreated under `yash-rai-93`. See the [deployment runbook](docs/DEPLOYMENT.md) for setup and verification.
+**[Live dashboard](https://argo-data-platform.vercel.app/) · [API docs](https://argo-api-yash.onrender.com/docs)**
+
+The committed warehouse, models, and charts were regenerated in [rebuild 39998805393](https://github.com/yash-rai-93/argo-data-platform/actions/runs/39998805393) using GCP project `argo-data-yash-93`. [argo-artifacts.json](argo-artifacts.json) records the source commit, study window, and file checksums. See the [deployment runbook](docs/DEPLOYMENT.md) for configuration and verification.
 
 | | |
 | --- | --- |
 | **Primary model** | XGBoost Cox proportional hazards (`survival:cox`) |
-| **Holdout C-index** | **0.7005** — chronological split, never randomised |
-| **Cohort** | 3,033 eligible contributors from 77,332 observed |
+| **Holdout C-index** | **0.7063** — chronological split, never randomised |
+| **Cohort** | 3,031 eligible contributors; train / holdout: 2,424 / 607 |
 | **Data** | `githubarchive.day.*` via BigQuery, 2023-07-01 → 2024-01-01 |
 | **Stack** | Next.js 16 · FastAPI · DuckDB · dbt 1.12 · XGBoost 3.3 · scikit-survival |
 | **Tests** | 20 Python tests · 8 dbt data tests, including the leakage assertion |
@@ -36,15 +38,15 @@ flowchart LR
     end
 
     subgraph WAREHOUSE["Warehouse — committed to the repo"]
-        DUCK[("DuckDB<br/>argo.duckdb · 13MB<br/>columnar, read-only")]
+        DUCK[("DuckDB<br/>argo.duckdb · bundled snapshot<br/>columnar, read-only")]
         DBT["dbt 1.12<br/>half-open windows<br/>eligibility floor<br/>leakage assertion"]
         ARROW --> DUCK
         DUCK <--> DBT
     end
 
     subgraph MODELS["Modelling — offline training"]
-        COX["XGBoost survival:cox<br/>C-index 0.7005"]
-        CLF["XGBoost binary<br/>ROC-AUC 0.7553"]
+        COX["XGBoost survival:cox<br/>C-index 0.7063"]
+        CLF["XGBoost binary<br/>ROC-AUC 0.7608"]
         SHAP["SHAP TreeExplainer"]
         DBT --> COX
         DBT --> CLF
@@ -81,7 +83,7 @@ flowchart LR
 
 Binary classification asks *will this contributor churn?* and demands a yes/no label for every row. That demand is the flaw.
 
-Of 2,426 training contributors, **1,186 were still active when the observation window closed**. They are **right-censored**: their outcome is unobserved, not negative. A classifier must label them "retained", which is true only up to the cutoff. It cannot express *"still contributing on day 184, outcome unknown."* Nearly half the dataset gets asserted as fact when it is a truncation artifact.
+Of 2,424 training contributors, **1,181 were still active when the observation window closed**. They are **right-censored**: their outcome is unobserved, not negative. A classifier must label them "retained", which is true only up to the cutoff. It cannot express *"still contributing on day 184, outcome unknown."* Nearly half the dataset gets asserted as fact when it is a truncation artifact.
 
 Cox proportional hazards keeps a censored subject in the risk set until the moment of censoring and no further. Nothing fabricated, nothing discarded.
 
@@ -114,11 +116,11 @@ ROC-AUC needs a hard label at a fixed horizon, which discards every censored sub
 
 | | |
 | --- | --- |
-| Train / holdout | 2,426 / 607, cut chronologically |
-| Events / censored (train) | 1,240 / 1,186 |
-| Best params | `max_depth=2, min_child_weight=10, n_estimators=100, lr=0.01, subsample=0.8` |
-| CV C-index | 0.8522 (3-fold `TimeSeriesSplit`) |
-| **Holdout C-index** | **0.7005** |
+| Train / holdout | 2,424 / 607, cut chronologically |
+| Events / censored (train) | 1,243 / 1,181 |
+| Best params | `max_depth=2, min_child_weight=5, n_estimators=100, lr=0.01, subsample=0.6` |
+| CV C-index | 0.8517 (3-fold `TimeSeriesSplit`) |
+| **Holdout C-index** | **0.7063** |
 
 ### The Breslow baseline
 
@@ -128,12 +130,9 @@ The API reconstructs it with the Breslow estimator, computed from the **training
 
 $$d\hat{H}_0(t) = \frac{d(t)}{\sum_{j \in R(t)} \widehat{HR}_j} \qquad S(t \mid x) = S_0(t)^{\widehat{HR}(x)}$$
 
-| Scenario | Hazard ratio | Day 30 | Day 60 | Day 90 | Median survival |
-| --- | --- | --- | --- | --- | --- |
-| Fading core maintainer | 1.12× | 79% | 64% | 51% | **95 days** |
-| Thriving contributor | 0.43× | 91% | 84% | 77% | never (180d+) |
+The endpoint calculates survival curves, milestones, and a median when survival reaches 50% inside the evaluation horizon. A null median means that threshold was not reached.
 
-Validation replaces the confusion matrix with **Kaplan-Meier curves stratified by predicted risk tercile**. The bands separate cleanly and never cross — low plateaus near 69% survival, medium near 38%, high near 20%.
+Validation uses **Kaplan-Meier curves stratified by predicted risk tercile**. The [survival evaluation chart](frontend/public/assets/survival_curves.png) and [SHAP summary](frontend/public/assets/shap_summary.png) were regenerated with these models.
 
 ---
 
@@ -154,11 +153,11 @@ The reflexive answer is "put it in Postgres." It is wrong here, and the reasonin
 | Operational surface | One file | Server, WAL, vacuum, pooling, backups |
 | Distribution | Baked into the container image | Managed service, network hop, credential rotation |
 
-Both timings are measured on this warehouse: a six-column grouped aggregate with two `FILTER` clauses returns in 0.05s, and `dbt build` materialises the full training mart — dedupe, windowing, 16 features, both target encodings — in 0.26s, as recorded in `meta_dbt_runs`.
+The following timings were measured on the earlier committed warehouse, before rebuild 39998805393: a six-column grouped aggregate with two `FILTER` clauses returns in 0.05s, and `dbt build` materialises the full training mart — dedupe, windowing, 16 features, both target encodings — in 0.26s, as recorded in `meta_dbt_runs`.
 
 **The concurrency objection is real and does not apply.** Postgres wins decisively on concurrent writers and transactional integrity. This system has one offline writer and N read-only readers. Paying a row-store's scan penalty *plus* operational overhead for MVCC guarantees nothing here requires is a straight loss.
 
-**Portability is the deciding factor, not a consolation.** The 13MB warehouse is committed. A reviewer clones and serves a prediction in under a minute — no database to provision, no credentials, no ETL run. Unavailable from any server-based engine.
+**Portability is the deciding factor, not a consolation.** The warehouse is committed. A reviewer clones and serves a prediction in under a minute — no database to provision, no credentials, no ETL run. Unavailable from any server-based engine.
 
 **When this flips:** the moment a write path appears — annotations, feedback loops, multi-tenant state. The answer then is Postgres for the OLTP surface *alongside* the columnar store, not migrating analytics into an engine that is bad at it.
 
@@ -181,7 +180,7 @@ The cost is a cold start on the first request after idle. Rather than hide it, t
 
 ### 3. A 2.5GB image that runs in 229MiB — disk and RAM are different problems
 
-The image is 2.5GB. **The running container peaks at 229MiB.** Conflating the two is how services get provisioned at 4× cost.
+Earlier measurements recorded a 2.5GB image and a **229MiB peak running container**. These are historical measurements, not a new resource benchmark for rebuild 39998805393. Conflating the two is how services get provisioned at 4× cost.
 
 Measured with every endpoint exercised:
 
@@ -223,11 +222,11 @@ train = frame.iloc[:cutoff]   # the earlier cohort
 test  = frame.iloc[cutoff:]   # the newest cohort, no temporal adjacency
 ```
 
-This reproduces the deployment condition: production always scores contributors who arrived after training froze. **Measured cost of honesty: CV 0.8522 → holdout 0.7005.**
+This reproduces the deployment condition: production always scores contributors who arrived after training froze. **Current measured gap: CV 0.8517 → holdout 0.7063.**
 
 ### Leakage is asserted, not assumed
 
-`transform/tests/assert_no_target_leakage.sql` recomputes the mart's aggregates from `raw_github_events` restricted to the observation window and fails on any disagreement. It is not a tautology — widening the feature window to `target_end` makes it flag **1,431 of 3,033 rows**.
+`transform/tests/assert_no_target_leakage.sql` recomputes the mart's aggregates from `raw_github_events` restricted to the observation window and fails on any disagreement. A historical boundary probe on the earlier 3,033-row artifact widened the feature window to `target_end` and flagged **1,431 rows**. The assertion also passed on the rebuilt 3,031-row mart; the historical probe count was not remeasured.
 
 ### The eligibility floor
 
@@ -238,6 +237,8 @@ having count(*) >= 5
 
 The raw cohort is **54,613 contributors at 91.6% churn**, dominated by drive-by first-timers. At that base rate, predicting "everyone churns" scores ~92% precision while knowing nothing.
 
+The original experiment rows retain their historical measurements. Rebuild 39998805393 uses the current half-open window implementation and yields 3,031 eligible contributors. Its score changes are not a controlled model improvement over the 3,033-row experiments.
+
 | Version | Rows | CV | Holdout | Precision | Recall |
 | --- | --- | --- | --- | --- | --- |
 | `v0.1-synthetic` | 1,000 | — | **0.9700** | — | — |
@@ -245,7 +246,9 @@ The raw cohort is **54,613 contributors at 91.6% churn**, dominated by drive-by 
 | `v2.0-eligibility-floor` | 3,033 | 0.8089 | 0.7399 | 0.7609 | 0.6243 |
 | `v2.1-regularized` | 3,033 | 0.8131 | 0.7563 | 0.7616 | 0.7238 |
 | `v2.2-boundary-probe` | 3,033 | 0.8137 | 0.7553 | 0.7704 | 0.6768 |
-| **`v3.0-survival-cox`** | 3,033 | **0.8522** (C) | **0.7005** (C) | n/a | n/a |
+| `v3.0-survival-cox` (historical) | 3,033 | 0.8522 (C) | 0.7005 (C) | n/a | n/a |
+| Rebuild `39998805393`, classifier | 3,031 | 0.8153 (AUC) | 0.7608 (AUC) | 0.7620 | 0.6989 |
+| **Rebuild `39998805393`, Cox** | 3,031 | **0.8517** (C) | **0.7063** (C) | n/a | n/a |
 
 **Precision fell 0.9269 → 0.7609 and that was the win.** The old number measured the class distribution. ROC-AUC rose 0.662 → 0.740 over the same change — the metric the base rate was not inflating.
 
@@ -278,18 +281,7 @@ curl -X POST http://127.0.0.1:7860/api/v1/predict/churn \
        "velocity_30d":0.07,"deceleration_score":19,"deceleration_ratio":0.46}'
 ```
 
-```json
-{
-  "hazard_ratio": 1.1198,
-  "median_survival_days": 95,
-  "probability": 0.631,
-  "survival_milestones": [
-    { "day": 30, "survival": 0.7917 },
-    { "day": 60, "survival": 0.6405 },
-    { "day": 90, "survival": 0.5083 }
-  ]
-}
-```
+The JSON response includes `hazard_ratio`, `probability`, `median_survival_days`, `survival_curve`, `survival_milestones`, and per-feature SHAP attribution. Values come from the committed models and warehouse; the rebuild smoke test verified both inference paths and all 16 feature attributions.
 
 Dashboard:
 
@@ -339,7 +331,7 @@ This is a historical 2023-07-01 to 2024-01-01 snapshot, not a live activity feed
 
 Set Vercel's `NEXT_PUBLIC_API_URL` to the actual new Render HTTPS origin, without
 `/api/v1` or a trailing slash. It is inlined at build time, so changing it requires
-a new frontend deployment. New live URLs will be recorded after validation.
+a new frontend deployment. The URLs above passed HTTP, compiled API URL, prediction, and CORS checks in [live verification run 39994222456](https://github.com/yash-rai-93/argo-data-platform/actions/runs/39994222456). Run **Verify live deployment** again after promoting a new artifact set. Browser interactions and idle cold-start duration still need a manual check.
 
 Render's Free web service sleeps after inactivity. Test the actual cold-start
 delay before updating the dashboard's notice. Start with the credential-free
@@ -372,26 +364,20 @@ execute. An ordinary application push does not query BigQuery or retrain models.
 
 **Two-stage risk ranking.** `/customers/risk` takes the 200 highest-volume contributors, scores them in one batched Cox inference, and returns the 20 with the highest hazard. Ranking the full cohort by hazard surfaces drive-bys the model is confidently right about and no maintainer would action; ranking by volume returns whoever is busiest regardless of risk. The intersection is the only actionable set.
 
-```
-contributor      repo                        events  idle      HR   median
-vandonr-amz      apache/airflow                 350   39d    1.17      90d
-sgugger          huggingface/transformers      1,619   27d    1.04     105d
-titaiwangms      pytorch/pytorch                 948   27d    0.99     110d
-gmagogsfm        pytorch/pytorch                 393   23d    0.73    180d+
-```
+The actual queue is computed from the committed warehouse and model on each request to `/api/v1/customers/risk`.
 
 ---
 
 ## Notable findings
 
-**STL recovered the US holiday calendar from raw event volume.** Decomposing daily activity with `period=7` and flagging 3σ residuals — *after* trend and weekly seasonality are removed — surfaces five days across 184:
+**STL recovered the US holiday calendar from raw event volume.** Decomposing daily activity with `period=7` and flagging 3σ residuals — *after* trend and weekly seasonality are removed — surfaces five days across 183 in rebuild 39998805393:
 
 ```
-2023-07-04   collapse   z = -3.95    US Independence Day
-2023-09-05   collapse   z = -4.16    day after Labor Day
-2023-10-18   collapse   z = -3.04
-2023-11-24   collapse   z = -4.42    day after US Thanksgiving
-2023-12-19   spike      z = +3.70
+2023-07-04   collapse   z = -5.13    US Independence Day
+2023-09-04   collapse   z = -3.76    US Labor Day
+2023-11-24   collapse   z = -4.84    day after US Thanksgiving
+2023-12-16   collapse   z = -3.01
+2023-12-20   spike      z = +3.06
 ```
 
 No calendar was supplied to the model.
@@ -426,12 +412,12 @@ tests/             Schema-parity contract tests
 
 ## Known limitations
 
-- **607 holdout rows.** A ±0.02 C-index swing is inside sampling noise. Do not quote 0.7005 as precise.
+- **607 holdout rows.** A ±0.02 C-index swing is inside sampling noise. Do not quote 0.7063 as precise.
 - **Hyperparameter search has converged.** Two grid expansions moved holdout score by −0.001. Remaining headroom is in the data.
 - **Proportional hazards is assumed, not tested.** No Schoenfeld residual analysis has been run. Non-crossing KM terciles are suggestive, not proof.
 - **Two models serve one dashboard.** The threshold simulator is probability-based, the triage queue hazard-based. Both honest; the coexistence is not yet explained in the UI.
 - **`metric_activity_decomposition` is written by Python, not dbt.** `dbt build` will not rebuild it.
-- **CI lints and runs contract tests only.** The dbt leakage test needs a real warehouse and runs locally; synthesising a fixture to make it green would defeat its purpose.
+- **CI validates the committed snapshot.** It runs Python format/lint/tests, dbt build and leakage checks, SQL lint, frontend lint/build, and container smoke tests. Ordinary pushes do not extract new GitHub Archive data or retrain models.
 - **Cold-start duration is estimated, not measured.** The dashboard states ~40s as a ceiling. Tune `COLD_START_BODY` once a real Render cold start is observed.
 
 ---
