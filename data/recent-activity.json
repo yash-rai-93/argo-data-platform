@@ -1,6 +1,67 @@
 {
   "schema_version": 1,
-  "status": "not_initialized",
+  "status": "ready",
   "mode": "manual",
-  "source": "GH Archive via BigQuery"
+  "source": "GH Archive via BigQuery",
+  "coverage_start": "2026-10-15",
+  "through_exclusive": "2026-10-22",
+  "refreshed_at": "2026-10-23T19:12:34.248585+00:00",
+  "last_event_at": "2026-10-21T23:59:23+00:00",
+  "event_count": 1050,
+  "active_contributors": 344,
+  "pr_issue_events": 442,
+  "daily": [
+    {
+      "date": "2026-10-15",
+      "events": 87,
+      "contributors": 55
+    },
+    {
+      "date": "2026-10-16",
+      "events": 102,
+      "contributors": 72
+    },
+    {
+      "date": "2026-10-17",
+      "events": 54,
+      "contributors": 42
+    },
+    {
+      "date": "2026-10-18",
+      "events": 84,
+      "contributors": 57
+    },
+    {
+      "date": "2026-10-19",
+      "events": 173,
+      "contributors": 87
+    },
+    {
+      "date": "2026-10-20",
+      "events": 168,
+      "contributors": 87
+    },
+    {
+      "date": "2026-10-21",
+      "events": 382,
+      "contributors": 72
+    }
+  ],
+  "query": {
+    "start": "2026-10-15",
+    "end_exclusive": "2026-10-22",
+    "requested_end": "2026-10-22",
+    "caught_up": true,
+    "estimated_bytes": 326575749,
+    "maximum_bytes_billed": 400000000,
+    "dry_run": false,
+    "sql_sha256": "3a9da9cb2b8683b7e6e3419079527af1fbf20540ce062fb5267328b6b9793fc7",
+    "job_id": "81d86fbb-9c89-44d9-8219-1c4786c8afe1",
+    "project": "argo-data-yash-93",
+    "bytes_processed": 326575749,
+    "bytes_billed": 327155712,
+    "run_id": "40009513670",
+    "source_commit": "6ad458fed87be3896aeac5400a4f11805d12042e"
+  },
+  "state_sha256": "4cc9c9d2792d6ff93af0be5cea667856b2deedb55cacc01c233f2cf79eee6aba"
 }
