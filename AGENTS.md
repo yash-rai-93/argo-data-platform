@@ -23,7 +23,7 @@ records rules that outlive any single task.
 
 - **Lean by default.** Create a directory, config, or dependency only when the
   first implementation needs it. No placeholders or speculative files.
-- **Layers depend downward only:** `generator  warehouse  transform  serve 
+- **Layers depend downward only:** `generator → warehouse → transform → serve →
   present`. No upstream imports.
 - **Formatting/linting is enforced** by Ruff (Python) and SQLFluff
   (DuckDB dialect, dbt templater). Fix, don't suppress.
@@ -37,5 +37,5 @@ records rules that outlive any single task.
 
 ## Decisions
 
-Record an ADR under `docs/decisions/` only for a real, hard-to-reverse choice -
+Record an ADR under `docs/decisions/` only for a real, hard-to-reverse choice —
 not routine work.

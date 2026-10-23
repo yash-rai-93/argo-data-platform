@@ -205,7 +205,7 @@ export default function Home() {
             <TrendingUp className="h-3.5 w-3.5 text-red-500" />
             Window
             <span className="font-mono text-slate-300">
-              2023-07-01  2024-01-01
+              2023-07-01 → 2024-01-01
             </span>
           </span>
         </div>
