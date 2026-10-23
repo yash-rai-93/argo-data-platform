@@ -6,7 +6,7 @@ on:
       operation:
         description: Estimate or apply a recent refresh, or rebuild historical training artifacts
         type: choice
-        options: [incremental-dry-run, incremental-refresh, dry-run, rebuild]
+        options: [incremental-dry-run, incremental-refresh, backfill-dry-run, backfill-refresh, dry-run, rebuild]
         default: incremental-dry-run
       maximum_bytes_billed:
         description: "Required for apply/rebuild: positive bytes cap; recent refresh maximum 20000000000"
@@ -14,7 +14,7 @@ on:
         required: false
 
       refresh_end:
-        description: "Optional recent-data end date, exclusive UTC (YYYY-MM-DD); copy from estimate"
+        description: "Recent/backfill end date, exclusive UTC (YYYY-MM-DD); copy from estimate"
         type: string
         required: false
 
@@ -142,7 +142,7 @@ jobs:
             argo-artifacts.json
 
   recent-activity:
-    if: github.ref == 'refs/heads/main' && startsWith(inputs.operation, 'incremental-')
+    if: github.ref == 'refs/heads/main' && (startsWith(inputs.operation, 'incremental-') || startsWith(inputs.operation, 'backfill-'))
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -180,7 +180,7 @@ jobs:
               exit 1
             }
           fi
-          if [ "$OPERATION" = "incremental-refresh" ]; then
+          if [[ "$OPERATION" = *-refresh ]]; then
             if [[ "$CAP" =~ ^[1-9][0-9]{0,10}$ ]] && (( CAP <= 20000000000 )); then
               echo "Explicit query cap: $CAP bytes"
             else
@@ -205,13 +205,14 @@ jobs:
         run: |
           set -euo pipefail
           args=()
+          if [[ "$OPERATION" = backfill-* ]]; then args+=(--backfill); fi
           if [ -n "$END_DATE" ]; then args+=(--end-date "$END_DATE"); fi
-          if [ "$OPERATION" = "incremental-refresh" ]; then
+          if [[ "$OPERATION" = *-refresh ]]; then
             args+=(--apply --maximum-bytes-billed "$CAP")
           fi
           uv run python -m etl.refresh_activity "${args[@]}"
       - name: Validate and publish a data review branch
-        if: inputs.operation == 'incremental-refresh'
+        if: inputs.operation == 'incremental-refresh' || inputs.operation == 'backfill-refresh'
         shell: bash
         run: |
           set -euo pipefail

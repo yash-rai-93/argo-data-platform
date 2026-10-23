@@ -30,6 +30,34 @@ The workflow path remains `.github/workflows/rebuild-data.yml` on `main`,
 matching the existing federation restriction. No new IAM grants, keys,
 bucket, database, or paid always-on service are required.
 
+## Expand the initial snapshot to 28 complete days
+
+1. After this implementation is merged, run `backfill-dry-run` on `main`.
+   Set an explicit exclusive UTC end date, or use the safe publication-lag default.
+2. Review its start, end, and byte estimate. Run `backfill-refresh` with the
+   **same end date** and an explicit query cap chosen from that estimate.
+3. Review and merge the two-file data PR as usual, then verify the deployed panel.
+
+Backfill reads one continuous 28-day range. It merges by event ID, preserves
+earlier retained coverage, and never moves the approved end cursor backwards.
+If the requested range would leave a gap after a long pause, catch up with normal
+incremental batches first. An already covered schema-v2 backfill is a no-op.
+Both operations share the existing spending checks, pending-branch guard,
+31-table query ceiling, and WIF workflow. No schedule or new service is added.
+
+A successful query generates schema-v2 aggregates containing weekly comparisons
+and quality evidence. Legacy checkpoints remain readable and are upgraded on
+the next successful apply. Legacy coverage is inherited explicitly; detailed
+historical deduplication counts are not fabricated. Schema-v2 covered-day lists
+must match the continuous retained range. A zero-event queried day remains
+covered; a missing required source table fails the query.
+
+The weekly view uses the last 14 covered days, split into two equal periods.
+It is unavailable before 14 days. Repository and category tables are exhaustive
+additive event changes; distinct contributors are counted across repositories,
+not summed. Percent changes are null when the previous count is zero.
+Freshness is data age, separate from validation and manual catch-up status.
+
 ## What is fetched and retained
 
 - The historical repository scope is reused, including the current
@@ -79,8 +107,8 @@ Run manually before a demo when needed. No fixed fee is added per trigger;
 query bytes and other metered usage determine cost after applicable free
 allowances/credits. Do not assume all refreshes are free. If an estimate exceeds
 20 GB, stop and narrow the planned source scope or review the design rather than
-bypassing the built-in ceiling. No paid extraction has been run to validate this
-implementation.
+bypassing the built-in ceiling. The first seven-day extraction is recorded in the README. The new 28-day
+backfill requires its own dry run and explicit cap before extraction.
 
 The repository is the checkpoint store for this low-frequency portfolio demo.
 Keeping only 90 days bounds each snapshot; Git history still grows per refresh.
