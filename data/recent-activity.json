@@ -1,16 +1,121 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "status": "ready",
   "mode": "manual",
   "source": "GH Archive via BigQuery",
-  "coverage_start": "2026-10-15",
+  "coverage_start": "2026-09-24",
   "through_exclusive": "2026-10-22",
-  "refreshed_at": "2026-10-23T19:12:34.248585+00:00",
+  "refreshed_at": "2026-10-23T20:40:53.294383+00:00",
   "last_event_at": "2026-10-21T23:59:23+00:00",
-  "event_count": 1050,
-  "active_contributors": 344,
-  "pr_issue_events": 442,
+  "event_count": 5657,
+  "active_contributors": 1116,
+  "pr_issue_events": 2174,
   "daily": [
+    {
+      "date": "2026-09-24",
+      "events": 153,
+      "contributors": 94
+    },
+    {
+      "date": "2026-09-25",
+      "events": 144,
+      "contributors": 79
+    },
+    {
+      "date": "2026-09-26",
+      "events": 73,
+      "contributors": 39
+    },
+    {
+      "date": "2026-09-27",
+      "events": 107,
+      "contributors": 37
+    },
+    {
+      "date": "2026-09-28",
+      "events": 368,
+      "contributors": 80
+    },
+    {
+      "date": "2026-09-29",
+      "events": 258,
+      "contributors": 117
+    },
+    {
+      "date": "2026-09-30",
+      "events": 347,
+      "contributors": 158
+    },
+    {
+      "date": "2026-10-01",
+      "events": 309,
+      "contributors": 132
+    },
+    {
+      "date": "2026-10-02",
+      "events": 349,
+      "contributors": 130
+    },
+    {
+      "date": "2026-10-03",
+      "events": 188,
+      "contributors": 100
+    },
+    {
+      "date": "2026-10-04",
+      "events": 136,
+      "contributors": 76
+    },
+    {
+      "date": "2026-10-05",
+      "events": 234,
+      "contributors": 89
+    },
+    {
+      "date": "2026-10-06",
+      "events": 221,
+      "contributors": 100
+    },
+    {
+      "date": "2026-10-07",
+      "events": 114,
+      "contributors": 78
+    },
+    {
+      "date": "2026-10-08",
+      "events": 151,
+      "contributors": 68
+    },
+    {
+      "date": "2026-10-09",
+      "events": 131,
+      "contributors": 76
+    },
+    {
+      "date": "2026-10-10",
+      "events": 199,
+      "contributors": 90
+    },
+    {
+      "date": "2026-10-11",
+      "events": 134,
+      "contributors": 66
+    },
+    {
+      "date": "2026-10-12",
+      "events": 254,
+      "contributors": 90
+    },
+    {
+      "date": "2026-10-13",
+      "events": 280,
+      "contributors": 82
+    },
+    {
+      "date": "2026-10-14",
+      "events": 457,
+      "contributors": 92
+    },
     {
       "date": "2026-10-15",
       "events": 87,
@@ -48,20 +153,277 @@
     }
   ],
   "query": {
-    "start": "2026-10-15",
+    "start": "2026-09-24",
     "end_exclusive": "2026-10-22",
     "requested_end": "2026-10-22",
     "caught_up": true,
-    "estimated_bytes": 326575749,
-    "maximum_bytes_billed": 400000000,
+    "estimated_bytes": 3020674716,
+    "maximum_bytes_billed": 3500000000,
     "dry_run": false,
-    "sql_sha256": "3a9da9cb2b8683b7e6e3419079527af1fbf20540ce062fb5267328b6b9793fc7",
-    "job_id": "81d86fbb-9c89-44d9-8219-1c4786c8afe1",
+    "mode": "backfill",
+    "sql_sha256": "50474f48bdd116ce41b4c0c5df4715ef0b1e1819c245d9f352c8fffd8af35147",
+    "job_id": "ccebb975-1891-4172-9008-10d23a179dca",
     "project": "argo-data-yash-93",
-    "bytes_processed": 326575749,
-    "bytes_billed": 327155712,
-    "run_id": "40009513670",
-    "source_commit": "6ad458fed87be3896aeac5400a4f11805d12042e"
+    "bytes_processed": 3020674716,
+    "bytes_billed": 3020947456,
+    "run_id": "40021018408",
+    "source_commit": "e3dab07c87436e5e6eb0dbf1a629d180e88e844e"
   },
-  "state_sha256": "4cc9c9d2792d6ff93af0be5cea667856b2deedb55cacc01c233f2cf79eee6aba"
+  "state_sha256": "6b1002a3c31f8f1eb35c1eafe9912c1b24894bb97b7b7a3637eb970178e2803b",
+  "weekly": {
+    "status": "ready",
+    "previous": {
+      "start": "2026-10-08",
+      "end_exclusive": "2026-10-15",
+      "events": 1606,
+      "active_contributors": 385,
+      "pr_issue_events": 425
+    },
+    "current": {
+      "start": "2026-10-15",
+      "end_exclusive": "2026-10-22",
+      "events": 1050,
+      "active_contributors": 344,
+      "pr_issue_events": 442
+    },
+    "changes": {
+      "events": {
+        "delta": -556,
+        "percent": -34.62
+      },
+      "active_contributors": {
+        "delta": -41,
+        "percent": -10.65
+      },
+      "pr_issue_events": {
+        "delta": 17,
+        "percent": 4.0
+      }
+    },
+    "returning_contributors": 106,
+    "joining_this_period": 238,
+    "absent_this_period": 279,
+    "repository_drivers": [
+      {
+        "name": "pytorch/pytorch",
+        "previous": 1000,
+        "current": 545,
+        "delta": -455
+      },
+      {
+        "name": "pandas-dev/pandas",
+        "previous": 69,
+        "current": 33,
+        "delta": -36
+      },
+      {
+        "name": "streamlit/streamlit",
+        "previous": 82,
+        "current": 52,
+        "delta": -30
+      },
+      {
+        "name": "keras-team/keras",
+        "previous": 24,
+        "current": 10,
+        "delta": -14
+      },
+      {
+        "name": "numpy/numpy",
+        "previous": 21,
+        "current": 10,
+        "delta": -11
+      },
+      {
+        "name": "fastapi/fastapi",
+        "previous": 11,
+        "current": 19,
+        "delta": 8
+      },
+      {
+        "name": "pydantic/pydantic",
+        "previous": 13,
+        "current": 5,
+        "delta": -8
+      },
+      {
+        "name": "huggingface/transformers",
+        "previous": 97,
+        "current": 90,
+        "delta": -7
+      },
+      {
+        "name": "ansible/ansible",
+        "previous": 14,
+        "current": 8,
+        "delta": -6
+      },
+      {
+        "name": "matplotlib/matplotlib",
+        "previous": 5,
+        "current": 10,
+        "delta": 5
+      },
+      {
+        "name": "django/django",
+        "previous": 30,
+        "current": 26,
+        "delta": -4
+      },
+      {
+        "name": "psf/requests",
+        "previous": 19,
+        "current": 15,
+        "delta": -4
+      },
+      {
+        "name": "sqlalchemy/sqlalchemy",
+        "previous": 1,
+        "current": 5,
+        "delta": 4
+      },
+      {
+        "name": "jupyterlab/jupyterlab",
+        "previous": 2,
+        "current": 5,
+        "delta": 3
+      },
+      {
+        "name": "apache/airflow",
+        "previous": 84,
+        "current": 82,
+        "delta": -2
+      },
+      {
+        "name": "python/cpython",
+        "previous": 88,
+        "current": 86,
+        "delta": -2
+      },
+      {
+        "name": "scipy/scipy",
+        "previous": 7,
+        "current": 9,
+        "delta": 2
+      },
+      {
+        "name": "celery/celery",
+        "previous": 8,
+        "current": 7,
+        "delta": -1
+      },
+      {
+        "name": "encode/django-rest-framework",
+        "previous": 0,
+        "current": 1,
+        "delta": 1
+      },
+      {
+        "name": "pallets/flask",
+        "previous": 3,
+        "current": 4,
+        "delta": 1
+      },
+      {
+        "name": "pypa/pip",
+        "previous": 1,
+        "current": 0,
+        "delta": -1
+      },
+      {
+        "name": "scrapy/scrapy",
+        "previous": 10,
+        "current": 11,
+        "delta": 1
+      },
+      {
+        "name": "pytest-dev/pytest",
+        "previous": 3,
+        "current": 3,
+        "delta": 0
+      },
+      {
+        "name": "scikit-learn/scikit-learn",
+        "previous": 14,
+        "current": 14,
+        "delta": 0
+      }
+    ],
+    "category_drivers": [
+      {
+        "name": "commit",
+        "previous": 960,
+        "current": 475,
+        "delta": -485
+      },
+      {
+        "name": "release",
+        "previous": 74,
+        "current": 23,
+        "delta": -51
+      },
+      {
+        "name": "engagement",
+        "previous": 147,
+        "current": 110,
+        "delta": -37
+      },
+      {
+        "name": "issue",
+        "previous": 138,
+        "current": 147,
+        "delta": 9
+      },
+      {
+        "name": "pull_request",
+        "previous": 287,
+        "current": 295,
+        "delta": 8
+      }
+    ],
+    "summary": "Events changed by -556; active contributors changed by -41 compared with the preceding seven covered days. Repository and category counts describe where activity changed, not its cause."
+  },
+  "quality": {
+    "status": "pass",
+    "validated_at": "2026-10-23T20:40:53.294135+00:00",
+    "expected_days": 28,
+    "covered_days": 28,
+    "zero_event_days": 0,
+    "checks": [
+      {
+        "name": "Daily source coverage",
+        "status": "pass",
+        "failures": 0
+      },
+      {
+        "name": "Unique retained event IDs",
+        "status": "pass",
+        "failures": 0
+      },
+      {
+        "name": "Required fields and UTC timestamps",
+        "status": "pass",
+        "failures": 0
+      },
+      {
+        "name": "Events within retained coverage",
+        "status": "pass",
+        "failures": 0
+      },
+      {
+        "name": "Checkpoint and aggregate agreement",
+        "status": "pass",
+        "failures": 0
+      }
+    ],
+    "last_query": {
+      "incoming_rows": 5657,
+      "duplicate_incoming_ids": 0,
+      "overlap_ids": 1050,
+      "new_ids": 4607,
+      "queried_days": 28,
+      "legacy_coverage_inherited": true
+    },
+    "coverage_note": "Every expected daily source table was queried successfully. This verifies query coverage, not completeness of all GitHub activity."
+  }
 }
