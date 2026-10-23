@@ -1,0 +1,127 @@
+name: Verify live deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      api_url:
+        description: Public API origin
+        required: true
+        default: https://argo-api-yash.onrender.com
+        type: string
+      frontend_url:
+        description: Public dashboard origin
+        required: true
+        default: https://argo-data-platform.vercel.app
+        type: string
+  pull_request:
+    branches: [main]
+    paths:
+      - .github/workflows/verify-deployment.yml
+
+permissions:
+  contents: read
+
+jobs:
+  live-deployment:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      API_URL: ${{ inputs.api_url || 'https://argo-api-yash.onrender.com' }}
+      FRONTEND_URL: ${{ inputs.frontend_url || 'https://argo-data-platform.vercel.app' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv python install 3.12
+      - run: uv sync --frozen --no-dev
+      - name: Wait for API cold start
+        run: |
+          curl --fail --silent --show-error --retry 6 --retry-all-errors \
+            --retry-delay 5 --retry-max-time 180 --max-time 90 \
+            "$API_URL/health"
+      - name: Verify deployed warehouse and models
+        run: uv run --no-sync python -m api.smoke_test --base-url "$API_URL" --timeout 90
+      - name: Verify dashboard build and cross-origin requests
+        run: |
+          uv run --no-sync python - <<'PY'
+          import os
+          from html.parser import HTMLParser
+          from urllib.parse import urljoin, urlparse
+
+          import requests
+
+          api = os.environ["API_URL"].rstrip("/")
+          frontend = os.environ["FRONTEND_URL"].rstrip("/")
+
+          class Scripts(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.sources = []
+
+              def handle_starttag(self, tag, attrs):
+                  if tag == "script":
+                      src = dict(attrs).get("src")
+                      if src:
+                          self.sources.append(src)
+
+          with requests.Session() as session:
+              response = session.get(frontend, timeout=90)
+              response.raise_for_status()
+              if response.status_code != 200 or "argo" not in response.text.lower():
+                  raise RuntimeError("Dashboard did not serve the ARGO page")
+              if urlparse(response.url).netloc != urlparse(frontend).netloc:
+                  raise RuntimeError("Dashboard redirected to another host")
+              print("PASS dashboard page")
+
+              parser = Scripts()
+              parser.feed(response.text)
+              bundles = {
+                  urljoin(frontend + "/", src)
+                  for src in parser.sources
+                  if "/_next/static/" in src
+                  and urlparse(urljoin(frontend + "/", src)).netloc
+                  == urlparse(frontend).netloc
+              }
+              if not bundles:
+                  raise RuntimeError("Dashboard did not include Next.js bundles")
+              found_api = False
+              for url in sorted(bundles):
+                  bundle = session.get(url, timeout=90)
+                  bundle.raise_for_status()
+                  found_api = found_api or api in bundle.text
+              if not found_api:
+                  raise RuntimeError(
+                      "Expected API origin missing from dashboard bundles; "
+                      "set NEXT_PUBLIC_API_URL and redeploy the frontend"
+                  )
+              print(f"PASS dashboard bundles contain API origin: {api}")
+
+              response = session.get(
+                  f"{api}/api/v1/metrics/executive",
+                  headers={"Origin": frontend},
+                  timeout=90,
+              )
+              response.raise_for_status()
+              if response.headers.get("Access-Control-Allow-Origin") not in ("*", frontend):
+                  raise RuntimeError("API CORS does not allow the dashboard origin")
+              print("PASS dashboard origin allowed by API")
+
+              response = session.options(
+                  f"{api}/api/v1/predict/churn",
+                  headers={
+                      "Origin": frontend,
+                      "Access-Control-Request-Method": "POST",
+                      "Access-Control-Request-Headers": "content-type",
+                  },
+                  timeout=90,
+              )
+              response.raise_for_status()
+              if response.headers.get("Access-Control-Allow-Origin") not in ("*", frontend):
+                  raise RuntimeError("Prediction preflight rejected dashboard origin")
+              methods = response.headers.get("Access-Control-Allow-Methods", "").upper()
+              headers = response.headers.get("Access-Control-Allow-Headers", "").lower()
+              if "POST" not in methods or not ("content-type" in headers or headers == "*"):
+                  raise RuntimeError("Prediction preflight rejected JSON POST requests")
+              print("PASS prediction JSON POST preflight")
+          PY
