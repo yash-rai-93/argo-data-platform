@@ -199,3 +199,10 @@ and idle cold-start timing remain separate manual checks.
 - [Vercel environment settings](https://vercel.com/docs/environment-variables/managing-environment-variables)
 - [BigQuery query-cost controls](https://docs.cloud.google.com/bigquery/docs/best-practices-costs)
 - [Google GitHub authentication action](https://github.com/google-github-actions/auth)
+
+## Manual recent-activity updates
+
+For on-demand incremental updates, follow [the manual refresh guide](MANUAL_REFRESH.md).
+Use the existing data-maintenance workflow and GCP federation. The new path produces
+a separate recent-activity snapshot; it never retrains or modifies the historical
+model/warehouse artifact set. There is no automatic schedule.
