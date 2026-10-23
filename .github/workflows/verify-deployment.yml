@@ -42,6 +42,59 @@ jobs:
             "$API_URL/health"
       - name: Verify deployed warehouse and models
         run: uv run --no-sync python -m api.smoke_test --base-url "$API_URL" --timeout 90
+      - name: Verify promoted recent snapshot
+        run: |
+          uv run --no-sync python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          import requests
+
+          api = os.environ["API_URL"].rstrip("/")
+          expected = json.loads(Path("data/recent-activity.json").read_text())
+          response = requests.get(f"{api}/api/v1/activity/recent", timeout=90)
+          response.raise_for_status()
+          actual = response.json()
+          if actual != expected:
+              raise RuntimeError(
+                  "Live recent snapshot differs from the committed snapshot; "
+                  "wait for the backend deployment and rerun verification"
+              )
+          print("PASS live recent snapshot matches committed aggregate")
+          if actual["status"] == "ready":
+              if sum(day["events"] for day in actual["daily"]) != actual["event_count"]:
+                  raise RuntimeError("Daily events do not reconcile")
+              print(
+                  f"PASS recent coverage: {actual['coverage_start']} to "
+                  f"{actual['through_exclusive']} exclusive; "
+                  f"{actual['event_count']} events; "
+                  f"{actual['active_contributors']} contributors"
+              )
+              quality = actual.get("quality")
+              if quality:
+                  if quality["status"] != "pass" or any(
+                      check["status"] != "pass" for check in quality["checks"]
+                  ):
+                      raise RuntimeError("Snapshot quality checks are not passing")
+                  if quality["covered_days"] != quality["expected_days"]:
+                      raise RuntimeError("Incomplete recorded source coverage")
+                  print("PASS recorded snapshot quality checks")
+              weekly = actual.get("weekly", {})
+              if weekly.get("status") == "ready":
+                  delta = weekly["current"]["events"] - weekly["previous"]["events"]
+                  for name in ("repository_drivers", "category_drivers"):
+                      if sum(row["delta"] for row in weekly[name]) != delta:
+                          raise RuntimeError(f"{name} do not reconcile")
+                  if (
+                      weekly["returning_contributors"] + weekly["joining_this_period"]
+                      != weekly["current"]["active_contributors"]
+                      or weekly["returning_contributors"] + weekly["absent_this_period"]
+                      != weekly["previous"]["active_contributors"]
+                  ):
+                      raise RuntimeError("Contributor overlap does not reconcile")
+                  print("PASS weekly event drivers and contributor overlap")
+          PY
       - name: Verify dashboard build and cross-origin requests
         run: |
           uv run --no-sync python - <<'PY'
@@ -86,16 +139,27 @@ jobs:
               if not bundles:
                   raise RuntimeError("Dashboard did not include Next.js bundles")
               found_api = False
+              recent_panels = set()
               for url in sorted(bundles):
                   bundle = session.get(url, timeout=90)
                   bundle.raise_for_status()
                   found_api = found_api or api in bundle.text
+                  for label in (
+                      "What changed this week?",
+                      "Data quality & freshness",
+                      "Read the activity concentration investigation",
+                  ):
+                      if label in bundle.text:
+                          recent_panels.add(label)
               if not found_api:
                   raise RuntimeError(
                       "Expected API origin missing from dashboard bundles; "
                       "set NEXT_PUBLIC_API_URL and redeploy the frontend"
                   )
               print(f"PASS dashboard bundles contain API origin: {api}")
+              if len(recent_panels) != 3:
+                  raise RuntimeError("Dashboard is missing the new recent-activity panels")
+              print("PASS dashboard bundles include weekly, quality, and investigation views")
 
               response = session.get(
                   f"{api}/api/v1/metrics/executive",
