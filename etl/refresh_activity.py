@@ -78,7 +78,11 @@ def render_sql(window: Window) -> str:
             f"select id, type, actor, repo, created_at from `githubarchive.day.{day:%Y%m%d}`"
         )
     template = (_ROOT / "sql/bigquery/extract_recent_activity.sql").read_text()
-    return template.replace("__DAILY_TABLES__", "\n        union all\n        ".join(selections))
+    return (
+        template.replace("__DAILY_TABLES__", "\n        union all\n        ".join(selections))
+        .replace("__START__", window.start.isoformat())
+        .replace("__END__", window.end.isoformat())
+    )
 
 
 def normalize_event(row: dict) -> dict:

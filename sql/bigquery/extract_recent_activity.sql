@@ -13,6 +13,7 @@ with python_repos as (
         'pytorch/pytorch',
         'huggingface/transformers',
         'tiangolo/fastapi',
+        'fastapi/fastapi', -- Current name; keep the old name for archive continuity.
         'encode/django-rest-framework',
         'psf/requests',
         'pypa/pip',
@@ -40,7 +41,9 @@ scoped as (
     from (
         __DAILY_TABLES__
     )
-    where type in (
+    where created_at >= timestamp('__START__')
+        and created_at < timestamp('__END__')
+        and type in (
             'PushEvent',
             'PullRequestEvent',
             'PullRequestReviewEvent',
