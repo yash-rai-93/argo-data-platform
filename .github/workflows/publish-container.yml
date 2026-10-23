@@ -1,70 +1,57 @@
 name: Publish container
 
-# The backend ships as a container -- that is how Render runs it -- so the
-# image is a real build artifact rather than a packaging exercise. Building it
-# here instead of locally means the 2.5GB push never crosses a home connection,
-# and GITHUB_TOKEN replaces a personal access token with a credential scoped to
-# this one repository that expires when the job ends.
-
 on:
   push:
-    tags:
-      - "v*"
+    tags: ["v*"]
   workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
 
 jobs:
   publish:
     runs-on: ubuntu-latest
-
-    # Least privilege: the job writes packages and reads nothing else.
-    permissions:
-      contents: read
-      packages: write
-
     steps:
       - uses: actions/checkout@v4
-
-      - name: Authenticate to GHCR
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-
-      # GHCR rejects uppercase in an image path, and the owner is `AarushCh`.
-      # A tag push resolves to the version; a manual dispatch has no tag, so it
-      # falls back to the short SHA and never claims to be a release.
       - name: Resolve image tags
         id: tags
+        env:
+          OWNER: ${{ github.repository_owner }}
         run: |
           version="${GITHUB_REF_NAME}"
           if [ "${GITHUB_REF_TYPE}" != "tag" ]; then
             version="sha-$(git rev-parse --short HEAD)"
           fi
-          echo "image=ghcr.io/aarushch/argo-backend" >> "$GITHUB_OUTPUT"
+          echo "image=ghcr.io/${OWNER,,}/argo-backend" >> "$GITHUB_OUTPUT"
           echo "version=${version}" >> "$GITHUB_OUTPUT"
-
       - name: Build
         run: |
           docker build \
             -t "${{ steps.tags.outputs.image }}:${{ steps.tags.outputs.version }}" \
-            -t "${{ steps.tags.outputs.image }}:latest" \
-            .
-
-      - name: Push
-        run: docker push --all-tags "${{ steps.tags.outputs.image }}"
-
-      # A build that pushes without ever starting the container proves only
-      # that the layers assemble. The pytz failure that took down three
-      # endpoints was invisible until something actually served a request.
-      - name: Verify the image serves
+            -t "${{ steps.tags.outputs.image }}:latest" .
+      - name: Verify image before publishing
         run: |
-          docker run -d --name argo-check -p 7860:7860 "${{ steps.tags.outputs.image }}:${{ steps.tags.outputs.version }}"
-          for i in $(seq 1 30); do
-            if curl -fs http://localhost:7860/health > /dev/null; then
-              echo "healthy after ${i}s"
-              curl -fs http://localhost:7860/api/v1/predict/registry | head -c 400
-              docker rm -f argo-check
+          docker run -d --name argo-check -p 7860:7860 \
+            "${{ steps.tags.outputs.image }}:${{ steps.tags.outputs.version }}"
+          for i in $(seq 1 120); do
+            if curl -fs --max-time 2 http://localhost:7860/health > /dev/null; then
+              docker exec argo-check python -m api.smoke_test
               exit 0
             fi
             sleep 1
           done
-          echo "container never became healthy"
-          docker logs argo-check
           exit 1
+      - name: Container logs
+        if: failure()
+        run: docker logs argo-check
+      - name: Clean up
+        if: always()
+        run: docker rm -f argo-check || true
+      - name: Authenticate to GHCR
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_USER: ${{ github.actor }}
+        run: echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+      - name: Push verified image
+        run: docker push --all-tags "${{ steps.tags.outputs.image }}"

@@ -1,4 +1,4 @@
-# Backend image for Hugging Face Spaces.
+# Backend image for Render; also runs locally or on a Docker Space.
 #
 # Spaces refuses to run a container as root and routes traffic to port 7860, so
 # both are fixed here rather than left to the platform. The image is fully
@@ -11,7 +11,7 @@ FROM python:3.12-slim
 # OCI annotations. `image.source` is not decorative: GHCR reads it to attach
 # the published package to this repository and to inherit its visibility and
 # access rules. Without it the package is an orphan the repo never links to.
-LABEL org.opencontainers.image.source="https://github.com/AarushCh/Argo" \
+LABEL org.opencontainers.image.source="https://github.com/yash-rai-93/argo-data-platform" \
       org.opencontainers.image.description="Argo backend: FastAPI serving XGBoost Cox survival predictions over a bundled DuckDB warehouse." \
       org.opencontainers.image.licenses="MIT"
 

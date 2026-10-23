@@ -10,9 +10,8 @@ is itself part of the test. The explicit assertions below exist so a failure
 reports *which* field drifted rather than just refusing to import.
 
 No warehouse is touched. Nothing here opens a DuckDB connection, reads
-``transform/argo.duckdb``, or loads a model artifact -- all of which are absent
-in CI. Model and explainer loading is behind ``lru_cache`` and only fires on the
-first request, so importing the router is free.
+``transform/argo.duckdb``, or loads a model artifact. Model and explainer loading
+is behind ``lru_cache`` and only fires on the first request.
 """
 
 from __future__ import annotations
@@ -70,3 +69,11 @@ def test_enforce_schema_pads_absent_features_and_warns() -> None:
     assert list(padded.columns) == FEATURE_COLUMNS
     assert padded.iloc[0][FEATURE_COLUMNS[1]] == 0.0
     assert str(padded.dtypes.unique()[0]) == "float64"
+
+
+def test_deployment_smoke_payload_is_valid() -> None:
+    """The deployed smoke check must exercise the full current request contract."""
+    from api.smoke_test import PREDICTION_INPUT
+
+    assert set(PREDICTION_INPUT) == set(FEATURE_COLUMNS)
+    ChurnPredictionRequest.model_validate(PREDICTION_INPUT)

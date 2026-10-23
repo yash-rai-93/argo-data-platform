@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: argo-api-yash
+    runtime: docker
+    repo: https://github.com/yash-rai-93/argo-data-platform
+    branch: main
+    plan: free
+    region: singapore
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    autoDeployTrigger: checksPass

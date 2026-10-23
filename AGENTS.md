@@ -23,18 +23,19 @@ records rules that outlive any single task.
 
 - **Lean by default.** Create a directory, config, or dependency only when the
   first implementation needs it. No placeholders or speculative files.
-- **Layers depend downward only:** `generator → warehouse → transform → serve →
+- **Layers depend downward only:** `generator  warehouse  transform  serve 
   present`. No upstream imports.
 - **Formatting/linting is enforced** by Ruff (Python) and SQLFluff
   (DuckDB dialect, dbt templater). Fix, don't suppress.
 - **SQL/dbt:** models are `snake_case`; facts `fact_*`, dimensions `dim_*`.
   Every metric is defined once, in the semantic layer.
 - **Secrets** live in `.env` (git-ignored) and are read via config, never
-  hardcoded. The public demo runs on regenerated synthetic data only.
+  hardcoded. Public demos may use documented public datasets; record their source
+  and observation dates. Synthetic test fixtures must be labelled.
 - **Commits** follow Conventional Commits (`feat:`, `fix:`, `docs:`, `chore:`).
   CI (Ruff) must pass before merge.
 
 ## Decisions
 
-Record an ADR under `docs/decisions/` only for a real, hard-to-reverse choice —
+Record an ADR under `docs/decisions/` only for a real, hard-to-reverse choice -
 not routine work.
