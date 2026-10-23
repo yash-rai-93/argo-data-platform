@@ -81,9 +81,9 @@ class RefreshTests(unittest.TestCase):
         self.assertNotIn("githubarchive.day.20260102", sql)
         self.assertNotIn("2023*", sql)
         self.assertNotIn("__DAILY_TABLES__", sql)
-        self.assertIn("timestamp(\'2025-12-31\')", sql)
-        self.assertIn("timestamp(\'2026-01-02\')", sql)
-        self.assertIn("\'fastapi/fastapi\'", sql)
+        self.assertIn("timestamp('2025-12-31')", sql)
+        self.assertIn("timestamp('2026-01-02')", sql)
+        self.assertIn("'fastapi/fastapi'", sql)
 
     def test_upsert_deduplicates_retries_and_accepts_late_arrivals(self):
         window = refresh.Window(
