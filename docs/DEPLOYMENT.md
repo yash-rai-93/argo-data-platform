@@ -16,6 +16,8 @@ Do not regenerate data just to change hosting accounts.
 | GitHub | https://github.com/yash-rai-93/argo-data-platform |
 | Production branch | main |
 | Backend | Render Docker web service, configured in render.yaml |
+| Backend URL | https://argo-api-yash.onrender.com |
+| Dashboard URL | https://argo-data-platform.vercel.app/ |
 | Backend root / Dockerfile | Repository root / ./Dockerfile |
 | Dashboard | Vercel Next.js project; root directory frontend |
 | Vercel install / build | npm ci / npm run build |
@@ -78,9 +80,9 @@ Keep transform/argo.duckdb and the ml/models artifact filenames stable.
 
 | Repository variable | Value |
 | --- | --- |
-| GCP_PROJECT_ID | Actual project ID |
-| GCP_WORKLOAD_IDENTITY_PROVIDER | Full projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/POOL/providers/PROVIDER resource name |
-| GCP_ETL_SERVICE_ACCOUNT | argo-etl@PROJECT_ID.iam.gserviceaccount.com |
+| GCP_PROJECT_ID | argo-data-yash-93 |
+| GCP_WORKLOAD_IDENTITY_PROVIDER | projects/399491187636/locations/global/workloadIdentityPools/argo-github/providers/github |
+| GCP_ETL_SERVICE_ACCOUNT | argo-etl@argo-data-yash-93.iam.gserviceaccount.com |
 
 Use the Google authentication action's documented federation setup. Do not
 download/upload a long-lived service-account key for this workflow. Temporary
@@ -166,6 +168,29 @@ For rollback, redeploy the prior application commit with its complete matched
 warehouse/model/chart set. Rebuild Vercel if the backend origin changes. Keep
 previous services intact until the new deployment passes. No force-push is
 needed for deployment or rollback.
+
+## Verified historical rebuild
+
+[Run 39998805393](https://github.com/yash-rai-93/argo-data-platform/actions/runs/39998805393)
+completed on October 23, 2026, using project `argo-data-yash-93`, location `US`,
+and a `60000000000` maximum-bytes-billed limit. It scanned 51.87 GiB, extracted
+547,434 events, and built a 3,031-contributor training mart. Both models were
+retrained: classifier holdout ROC-AUC 0.7608 and Cox holdout C-index 0.7063.
+All 8 dbt data tests, 20 Python tests, and the rebuilt API smoke checks passed.
+
+The warehouse, both model/parameter pairs, and both evaluation charts are kept
+together. Root-level `argo-artifacts.json` records their SHA-256 checksums and
+source commit `1545ec50330f5518ca114e06faaf1ce530798474`. The artifact ZIP digest
+was `30719c7861f9beccf6475b69948808a4cd074e1455f726c0dd91f92f9dbd9c91`.
+Do not combine an older warehouse or parameter file with this rebuild.
+
+Hosting HTTP/configuration/CORS checks passed in
+[run 39994222456](https://github.com/yash-rai-93/argo-data-platform/actions/runs/39994222456)
+before this artifact promotion. After merging a new matched set and waiting for
+both deployments, run **Verify live deployment** from `main` with the API and
+dashboard URLs above. Confirm the deployed model card reports 3,031 cohort rows
+and the governance endpoint identifies the new dbt invocation. Browser interaction
+and idle cold-start timing remain separate manual checks.
 
 ## Official references
 
