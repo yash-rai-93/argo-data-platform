@@ -76,7 +76,7 @@ const TABS: Record<
   ml: {
     title: "ML Engine",
     blurb:
-      "Training history, measured metric drift, warehouse lineage, and the live event stream feeding both the Cox survival model and the binary classifier.",
+      "Training history, measured metric drift, warehouse lineage, and the historical event snapshot used by the Cox survival model and binary classifier.",
     exportable: true,
   },
   retention: {
@@ -93,7 +93,7 @@ const TABS: Record<
   },
 };
 
-const PORTFOLIO_URL = "https://aarushch.github.io/Portfolio/";
+const PROFILE_URL = "https://github.com/yash-rai-93";
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<TabId>("command");
@@ -260,7 +260,7 @@ export default function Home() {
             <div className="mb-2 flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-red-500" />
               <h2 className="text-sm font-semibold text-slate-100">
-                AI Intelligence Summary
+                Contributor Activity Summary
               </h2>
             </div>
             {loading ? (
@@ -269,7 +269,7 @@ export default function Home() {
               <>
                 <p className="text-sm leading-relaxed text-slate-300">
                   {summary ||
-                    "Summary unavailable (requires a configured API key)."}
+                    "Summary unavailable. Please try again."}
                 </p>
                 {reasoning && (
                   <p className="mt-3 border-t border-white/10 pt-3 text-[11px] leading-relaxed text-slate-500">
@@ -383,20 +383,20 @@ export default function Home() {
           ))}
 
           <a
-            href={PORTFOLIO_URL}
+            href={PROFILE_URL}
             target="_blank"
             rel="noopener noreferrer"
             className="group mt-auto flex items-center gap-3 rounded-xl border-t border-red-950/60 px-2 pt-4 transition-colors hover:border-red-800/60"
           >
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-red-700 to-red-500 text-sm font-bold text-white shadow-[0_0_14px_rgba(239,68,68,0.4)]">
-              A
+              Y
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold text-slate-200 transition-colors group-hover:text-red-300">
-                Aarush Udbhav
+                Yash Rai
               </p>
               <p className="truncate text-xs text-slate-500">
-                Lead AI Engineer
+                Project Maintainer
               </p>
             </div>
             <ExternalLink className="h-3.5 w-3.5 shrink-0 text-slate-600 transition-colors group-hover:text-red-400" />

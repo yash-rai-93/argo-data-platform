@@ -6,37 +6,67 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   lint-and-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
+      - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
+      - run: uv python install 3.12
+      - run: uv sync --frozen
+      - run: uv run ruff format --check --diff .
+      - run: uv run ruff check .
+      - run: uv run pytest -v
+      # The committed historical warehouse makes these checks credential-free.
+      - name: Validate dbt models and leakage checks
+        working-directory: transform
+        run: uv run dbt build --profiles-dir .
+      - name: Lint dbt SQL
+        working-directory: transform
+        run: uv run sqlfluff lint models tests
 
-      - name: Install Python 3.12
-        run: uv python install 3.12
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
 
-      - name: Sync environment
-        run: uv sync
-
-      - name: Format check
-        run: uv run ruff format --check .
-
-      - name: Lint
-        run: uv run ruff check .
-
-      # Contract tests only. They import the router and the feature schema and
-      # touch no warehouse, so they run without credentials or argo.duckdb.
-      - name: Test
-        run: uv run pytest -v
-
-      # The dbt leakage test is deliberately absent. It must run against a real
-      # warehouse, which is built from the GitHub Archive BigQuery extract using
-      # credentials CI does not have, and transform/argo.duckdb is git-ignored.
-      # Run it locally with:
-      #   cd transform && uv run dbt test --profiles-dir .
-      # Faking a feed to make this step green would assert something untrue.
+  container:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build backend image
+        run: docker build -t argo-check .
+      - name: Verify warehouse, models, and API
+        run: |
+          docker run -d --name argo-check --memory=512m --cpus=1 -p 7860:7860 argo-check
+          for i in $(seq 1 120); do
+            if curl -fs --max-time 2 http://localhost:7860/health > /dev/null; then
+              docker exec argo-check python -m api.smoke_test
+              docker stats --no-stream --format 'Memory after smoke: {{.MemUsage}}' argo-check
+              exit 0
+            fi
+            sleep 1
+          done
+          exit 1
+      - name: Container logs
+        if: failure()
+        run: docker logs argo-check
+      - name: Clean up
+        if: always()
+        run: docker rm -f argo-check || true

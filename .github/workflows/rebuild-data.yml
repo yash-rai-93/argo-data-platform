@@ -1,0 +1,132 @@
+name: Rebuild historical data
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Estimate scan or rebuild the complete historical artifact set
+        type: choice
+        options: [dry-run, rebuild]
+        default: dry-run
+      maximum_bytes_billed:
+        description: Positive bytes-billed cap required for rebuild; obtain from dry-run
+        type: string
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  rebuild:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      GOOGLE_CLOUD_PROJECT: ${{ vars.GCP_PROJECT_ID }}
+      BIGQUERY_LOCATION: US
+      OPERATION: ${{ inputs.operation }}
+      BIGQUERY_MAX_BYTES_BILLED: ${{ inputs.maximum_bytes_billed }}
+      OMP_NUM_THREADS: "2"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check configuration
+        env:
+          WIF_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          ETL_SERVICE_ACCOUNT: ${{ vars.GCP_ETL_SERVICE_ACCOUNT }}
+        run: |
+          test -n "$GOOGLE_CLOUD_PROJECT" || { echo "Set GCP_PROJECT_ID"; exit 1; }
+          test -n "$WIF_PROVIDER" || { echo "Set GCP_WORKLOAD_IDENTITY_PROVIDER"; exit 1; }
+          test -n "$ETL_SERVICE_ACCOUNT" || { echo "Set GCP_ETL_SERVICE_ACCOUNT"; exit 1; }
+          if [ "$OPERATION" = "rebuild" ]; then
+            [[ "$BIGQUERY_MAX_BYTES_BILLED" =~ ^[1-9][0-9]*$ ]] || {
+              echo "Rebuild requires a positive maximum_bytes_billed input"
+              exit 1
+            }
+          fi
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv python install 3.12
+      - run: uv sync --frozen
+      - name: Authenticate for extraction
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_ETL_SERVICE_ACCOUNT }}
+      - name: Estimate scan
+        if: inputs.operation == 'dry-run'
+        run: uv run python -m etl.land_github_data --dry-run
+      - name: Extract with billing cap
+        if: inputs.operation == 'rebuild'
+        run: uv run python -m etl.land_github_data --maximum-bytes-billed "$BIGQUERY_MAX_BYTES_BILLED"
+      - name: Build and validate warehouse
+        if: inputs.operation == 'rebuild'
+        working-directory: transform
+        run: uv run dbt build --profiles-dir .
+      - name: Rebuild matching models and supporting tables
+        if: inputs.operation == 'rebuild'
+        run: |
+          uv run python -m etl.ingest_dbt_artifacts
+          uv run python -m ml.train_classifier
+          uv run python -m ml.train_churn
+          uv run python -m ml.evaluate_model
+          uv run python -m ml.decompose_activity
+          uv run pytest
+      - name: Verify rebuilt API
+        if: inputs.operation == 'rebuild'
+        run: |
+          uv run uvicorn api.main:app --host 127.0.0.1 --port 7860 > /tmp/argo-api.log 2>&1 &
+          api_pid=$!
+          trap 'kill "$api_pid" 2>/dev/null || true' EXIT
+          for i in $(seq 1 120); do
+            if curl -fs --max-time 2 http://localhost:7860/health > /dev/null; then
+              uv run python -m api.smoke_test
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/argo-api.log
+          exit 1
+      - name: Record artifact provenance
+        if: inputs.operation == 'rebuild'
+        run: |
+          uv run python - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+
+          paths = [
+              Path("transform/argo.duckdb"),
+              *sorted(Path("ml/models").glob("*.json")),
+              Path("frontend/public/assets/survival_curves.png"),
+              Path("frontend/public/assets/shap_summary.png"),
+          ]
+          metadata = {
+              "source_commit": os.environ["GITHUB_SHA"],
+              "run_id": os.environ["GITHUB_RUN_ID"],
+              "source": "githubarchive.day.2023*",
+              "window": "[2023-07-01, 2024-01-01)",
+              "sha256": {
+                  str(path): hashlib.sha256(path.read_bytes()).hexdigest()
+                  for path in paths
+              },
+          }
+          Path("argo-artifacts.json").write_text(json.dumps(metadata, indent=2) + "\n")
+          PY
+      # Upload exact paths only: auth writes a temporary credential file at root.
+      - uses: actions/upload-artifact@v4
+        if: inputs.operation == 'rebuild'
+        with:
+          name: argo-historical-${{ github.run_id }}
+          retention-days: 7
+          if-no-files-found: error
+          path: |
+            transform/argo.duckdb
+            ml/models/*.json
+            frontend/public/assets/survival_curves.png
+            frontend/public/assets/shap_summary.png
+            argo-artifacts.json

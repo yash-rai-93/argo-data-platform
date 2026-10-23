@@ -37,7 +37,8 @@ observation as (
     select e.*
     from events as e
     cross join bounds as b
-    where e.created_at >= b.observation_start
+    where
+        e.created_at >= b.observation_start
         and e.created_at < b.observation_end
 
 ),
@@ -61,8 +62,9 @@ select
     m.first_event_at as mart_first_event_at,
     r.first_event_at as window_first_event_at,
     m.days_since_last_event as mart_days_since_last_event,
-    date_diff('day', r.last_event_at, b.observation_end) as window_days_since_last_event,
-    m.tenure_days
+    m.tenure_days,
+    date_diff('day', r.last_event_at, b.observation_end)
+        as window_days_since_last_event
 from {{ ref('ml_contributor_churn_training') }} as m
 inner join recomputed as r on m.actor_login = r.actor_login
 cross join bounds as b
@@ -75,7 +77,9 @@ where
 
     -- Recency is anchored to the window edge. Anchoring it to max(created_at)
     -- instead would pull the target window into a feature; this catches that.
-    or m.days_since_last_event != date_diff('day', r.last_event_at, b.observation_end)
+    or m.days_since_last_event != date_diff(
+        'day', r.last_event_at, b.observation_end
+    )
 
     -- A negative recency means the last observed event fell after
     -- observation_end, which is leakage by definition.

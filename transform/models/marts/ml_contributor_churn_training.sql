@@ -14,7 +14,10 @@ with bounds as (
         observation_end,
         target_end,
         observation_start + to_days(
-            cast(date_diff('day', observation_start, observation_end) / 2 as integer)
+            cast(
+                date_diff('day', observation_start, observation_end) / 2
+                as integer
+            )
         ) as observation_midpoint,
         observation_end - to_days(30) as observation_last_30
     from (
@@ -22,7 +25,7 @@ with bounds as (
             date '2023-07-01' as observation_start,
             date '2023-11-01' as observation_end,
             date '2024-01-01' as target_end
-    )
+    ) as study_window
 
 ),
 
@@ -47,7 +50,8 @@ observation as (
     select e.*
     from events as e
     cross join bounds as b
-    where e.created_at >= b.observation_start
+    where
+        e.created_at >= b.observation_start
         and e.created_at < b.observation_end
 
 ),
@@ -61,7 +65,8 @@ target as (
         max(e.created_at) as last_target_event_at
     from events as e
     cross join bounds as b
-    where e.created_at >= b.observation_end
+    where
+        e.created_at >= b.observation_end
         and e.created_at < b.target_end
     group by e.actor_login
 
@@ -102,7 +107,8 @@ features as (
     -- vanish are trivially predictable and, at ~90% of raw rows, they swamp
     -- the signal that matters: whether an *established* contributor lapses.
     -- Applied as HAVING because the predicate is on post-aggregation counts.
-    having count(*) >= 5
+    having
+        count(*) >= 5
         and count(distinct cast(o.created_at as date)) >= 3
 
 )
@@ -124,8 +130,9 @@ select
     f.total_events / cast(f.active_days as double) as events_per_active_day,
     date_diff('day', f.first_event_at, b.observation_end) as tenure_days,
     -- Anchored to the window edge, never max(created_at), so recency stays
-    -- comparable across contributors and leaks nothing from the target side.
-    date_diff('day', f.last_event_at, b.observation_end) as days_since_last_event,
+    -- comparable across contributors and avoids target-window leakage.
+    date_diff('day', f.last_event_at, b.observation_end)
+        as days_since_last_event,
     -- Velocity: share of all observed activity that landed in the final 30
     -- days. Near 0 means the contributor has already gone quiet; near 1 means
     -- they only just arrived. nullif guards the zero-event divide.
@@ -133,8 +140,9 @@ select
         f.events_last_30_days / nullif(cast(f.total_events as double), 0), 0
     ) as velocity_30d,
     -- Deceleration: raw event delta between the two halves of the window.
-    -- Positive means the contributor slowed down, negative means they ramped.
-    coalesce(f.events_first_half - f.events_second_half, 0) as deceleration_score,
+    -- Positive means slowing down; negative means ramping up.
+    coalesce(f.events_first_half - f.events_second_half, 0)
+        as deceleration_score,
     -- Normalised deceleration so the signal is comparable between a maintainer
     -- shedding 400 events and a casual contributor shedding 4.
     coalesce(
@@ -150,7 +158,7 @@ select
     -- event = 1 when the contributor lapsed (no activity in the target
     -- window), 0 when they were still active at the study cutoff and are
     -- therefore right-censored.
-    case when t.actor_login is null then 1 else 0 end as event,
+    case when t.actor_login is null then 1 else 0 end as "event",
 
     -- duration = days under observation from entry until the event or until
     -- censoring, whichever came first.

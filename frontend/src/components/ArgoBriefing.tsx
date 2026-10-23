@@ -44,7 +44,7 @@ export default function ArgoBriefing() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div>
           <p className="leading-relaxed text-slate-300">
-            ARGO predicts <Accent>open-source contributor churn</Accent>. It also predicts SaaS churn from
+            ARGO predicts <Accent>open-source contributor churn</Accent> from
             547,434 real GitHub Archive events across 24 production Python
             repositories. It answers one falsifiable question: given a
             contributor&apos;s behaviour across a four-month observation window,

@@ -1,4 +1,4 @@
-// Set NEXT_PUBLIC_API_URL to the Cloud Run service URL in the Vercel project.
+// Set NEXT_PUBLIC_API_URL to the Render service origin in the Vercel project.
 // The fallback is the container's default port, so `docker run -p 7860:7860`
 // works locally with no environment set. NEXT_PUBLIC_ is required: this is
 // read in the browser, and Next.js only inlines variables with that prefix.

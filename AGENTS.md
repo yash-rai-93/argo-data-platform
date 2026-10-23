@@ -30,7 +30,8 @@ records rules that outlive any single task.
 - **SQL/dbt:** models are `snake_case`; facts `fact_*`, dimensions `dim_*`.
   Every metric is defined once, in the semantic layer.
 - **Secrets** live in `.env` (git-ignored) and are read via config, never
-  hardcoded. The public demo runs on regenerated synthetic data only.
+  hardcoded. Public demos may use documented public datasets; record their source
+  and observation dates. Synthetic test fixtures must be labelled.
 - **Commits** follow Conventional Commits (`feat:`, `fix:`, `docs:`, `chore:`).
   CI (Ruff) must pass before merge.
 

@@ -15,6 +15,7 @@ uv.lock.bak
 !.env.example
 *.pem
 secrets/
+gha-creds-*.json
 
 # ML artifacts. The trained boosters are tracked on purpose: they are the
 # deliverable, and without them a fresh clone cannot serve a prediction or

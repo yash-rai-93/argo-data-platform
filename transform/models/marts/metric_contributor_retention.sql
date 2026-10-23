@@ -30,11 +30,11 @@ with bounds as (
 contributor_months as (
 
     select distinct
-        actor_login,
-        date_trunc('month', created_at) as activity_month
-    from {{ source('github_archive', 'raw_github_events') }}
+        e.actor_login,
+        date_trunc('month', e.created_at) as activity_month
+    from {{ source('github_archive', 'raw_github_events') }} as e
     cross join bounds as b
-    where created_at < b.incomplete_month
+    where e.created_at < b.incomplete_month
 
 ),
 
@@ -67,16 +67,18 @@ activity as (
     from contributor_months as m
     inner join cohorts as c
         on m.actor_login = c.actor_login
-    group by c.cohort_month, date_diff('month', c.cohort_month, m.activity_month)
+    group by
+        c.cohort_month,
+        date_diff('month', c.cohort_month, m.activity_month)
 
 )
 
 select
     a.cohort_month,
-    strftime(a.cohort_month, '%b %Y') as cohort_label,
     a.period_offset,
     s.cohort_size,
     a.retained_contributors,
+    strftime(a.cohort_month, '%b %Y') as cohort_label,
     a.retained_contributors / cast(s.cohort_size as double) as retention_rate
 from activity as a
 inner join cohort_sizes as s

@@ -1,3 +1,5 @@
+.git
+.github
 .venv
 __pycache__/
 node_modules/
@@ -6,3 +8,6 @@ frontend/
 raw_events/
 *.log
 .env
+.env.*
+gha-creds-*.json
+secrets/

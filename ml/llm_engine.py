@@ -1,4 +1,4 @@
-"""Executive-insight generation via OpenRouter (NVIDIA Nemotron)."""
+"""Contributor summaries from stored metrics, optionally using OpenRouter."""
 
 from __future__ import annotations
 
@@ -8,69 +8,72 @@ import os
 import requests
 
 _URL = "https://openrouter.ai/api/v1/chat/completions"
-_MODEL = "nvidia/nemotron-3-ultra-550b-a55b:free"
 
-_MOCK = {
-    "summary": (
-        "Recurring revenue is modest but real, with MRR near $740 (ARR ~$8.9K) "
-        "against a small monetizing base, so the binding constraint on growth is "
-        "retention rather than acquisition. The churn model concentrates risk in "
-        "low-session, longer-tenured accounts, which is where a proactive save "
-        "motion will protect the most revenue. The highest-leverage move is to "
-        "drive trial users into their first collaborative action within 14 days "
-        "while nudging engaged Pro accounts toward Enterprise expansion."
-    ),
-    "reasoning": (
-        "Reasoning trace: (1) Parsed the executive metrics and normalized MRR/ARR "
-        "against the Free/Pro/Enterprise plan mix to estimate blended ARPU. "
-        "(2) Compared the trailing active-user average with the recurring-revenue "
-        "base to infer monetization efficiency per active user. (3) Weighed the "
-        "churn-probability distribution, noting that risk clusters in accounts with "
-        "few sessions but high account age, a classic dormancy signal. "
-        "(4) Ranked levers by expected revenue impact: retention saves outrank new "
-        "acquisition at this scale, and plan expansion outranks discounting. "
-        "(5) Concluded with three actions ordered by leverage and time-to-impact."
-    ),
-}
+
+def metric_summary(metrics: dict) -> dict[str, str]:
+    """Describe the measured historical cohort without invented business metrics."""
+    active = int(metrics["active_contributors"])
+    throughput = int(metrics["pr_throughput"])
+    retention = float(metrics["retention_rate"])
+    return {
+        "summary": (
+            f"The historical snapshot has {active:,} active contributors in its "
+            f"trailing 30-day window and {throughput:,} pull-request/issue events "
+            f"in its trailing week. "
+            f"{retention:.1%} of the prior 30-day contributor cohort returned "
+            "in the following 30-day window. "
+            "Use the contributor risk queue to prioritize a maintainer review."
+        ),
+        "reasoning": (
+            "Generated directly from stored cohort metrics, without an LLM call. "
+            "Dates are anchored to the archive snapshot, not today's activity."
+        ),
+        "source": "template",
+    }
 
 
 class InsightEngine:
-    """Turns Argo metrics into executive narratives via OpenRouter."""
+    """Generate contributor-focused summaries with a deterministic fallback."""
 
     def __init__(self) -> None:
-        """Read the OpenRouter API key from the environment."""
         self.api_key = os.environ.get("OPENROUTER_API_KEY")
+        self.model = os.environ.get("OPENROUTER_MODEL")
 
-    def generate_executive_summary(self, metrics_dict: dict) -> dict:
-        """Return a summary and reasoning, falling back to a mock on any failure."""
-        if not self.api_key:
-            return _MOCK
+    def generate_executive_summary(self, metrics_dict: dict) -> dict[str, str]:
+        """Use a live provider only when both its key and model are configured."""
+        fallback = metric_summary(metrics_dict)
+        if not self.api_key or not self.model:
+            return fallback
         payload = {
-            "model": _MODEL,
+            "model": self.model,
             "messages": [
                 {
                     "role": "system",
                     "content": (
-                        "You are a product and revenue strategy advisor for a SaaS "
-                        "platform. Write a concise, three-sentence strategic business "
-                        "summary of the metrics provided."
+                        "Summarize historical public GitHub contributor activity "
+                        "in three concise sentences using only the supplied metrics. "
+                        "Retention is a fraction. Do not invent revenue, customers, "
+                        "causes of inactivity, or claims about current activity."
                     ),
                 },
                 {"role": "user", "content": f"Metrics: {json.dumps(metrics_dict)}"},
             ],
-            "reasoning": {"enabled": True},
-        }
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json",
         }
         try:
-            response = requests.post(_URL, headers=headers, json=payload, timeout=30)
+            response = requests.post(
+                _URL,
+                headers={"Authorization": f"Bearer {self.api_key}"},
+                json=payload,
+                timeout=30,
+            )
             response.raise_for_status()
-            message = response.json()["choices"][0]["message"]
+            summary = response.json()["choices"][0]["message"]["content"]
+            if not isinstance(summary, str) or not summary.strip():
+                return fallback
             return {
-                "summary": message.get("content") or _MOCK["summary"],
-                "reasoning": message.get("reasoning_details") or _MOCK["reasoning"],
+                "summary": summary.strip(),
+                "reasoning": "Generated by OpenRouter from the stored historical cohort metrics.",
+                "source": "openrouter",
             }
-        except (requests.RequestException, KeyError, ValueError, IndexError):
-            return _MOCK
+        except (requests.RequestException, KeyError, TypeError, ValueError, IndexError):
+            return fallback

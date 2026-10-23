@@ -5,3 +5,8 @@ templater = dbt
 [sqlfluff:templater:dbt]
 project_dir = .
 profiles_dir = .
+
+# Preserve keyword-shaped schema names such as the survival target "event".
+# Both keyword and quoting rules stay enabled.
+[sqlfluff:rules:references.quoting]
+prefer_quoted_keywords = True

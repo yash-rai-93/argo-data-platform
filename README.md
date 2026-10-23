@@ -2,7 +2,7 @@
 
 **Predicts *when* an open-source contributor will go quiet, from 547,434 real GitHub Archive events across 24 production Python repositories.**
 
-## **[Live dashboard](https://argo-lake-phi.vercel.app)** · **[API docs](https://argo-ak57.onrender.com/docs)**
+The deployment is being recreated under `yash-rai-93`. See the [deployment runbook](docs/DEPLOYMENT.md) for setup and verification.
 
 | | |
 | --- | --- |
@@ -11,7 +11,7 @@
 | **Cohort** | 3,033 eligible contributors from 77,332 observed |
 | **Data** | `githubarchive.day.*` via BigQuery, 2023-07-01 → 2024-01-01 |
 | **Stack** | Next.js 16 · FastAPI · DuckDB · dbt 1.12 · XGBoost 3.3 · scikit-survival |
-| **Tests** | 7 contract tests · 8 dbt data tests · 1 singular leakage assertion |
+| **Tests** | 20 Python tests · 8 dbt data tests, including the leakage assertion |
 
 ---
 
@@ -262,7 +262,8 @@ Two rows carry `comparable = false`: `v0.1` scored a different target on data th
 **The warehouse and both trained models are committed.** No credentials, no ETL, no dbt build, no training.
 
 ```bash
-git clone https://github.com/AarushCh/Argo.git && cd Argo
+git clone https://github.com/yash-rai-93/argo-data-platform.git
+cd argo-data-platform
 uv sync
 uv run uvicorn api.main:app --reload --port 7860
 ```
@@ -312,7 +313,9 @@ Only needed to change the cohort or the observation windows.
 gcloud auth application-default login
 export GOOGLE_CLOUD_PROJECT=<project-id>
 
-uv run python etl/land_github_data.py          # BigQuery → Arrow → DuckDB
+uv run python -m etl.land_github_data --dry-run  # review estimated bytes first
+# Then set BIGQUERY_MAX_BYTES_BILLED explicitly; see docs/DEPLOYMENT.md.
+uv run python -m etl.land_github_data          # BigQuery → Arrow → DuckDB
 cd transform && uv run dbt build --profiles-dir . && cd ..
 uv run python -m etl.ingest_dbt_artifacts      # dbt metadata → governance panel
 uv run python -m ml.train_classifier           # → churn_xgb.json
@@ -325,24 +328,28 @@ uv run python -m ml.decompose_activity         # STL anomalies
 
 ## Deployment
 
-Both layers deploy from this repository on every push to `main`. Neither needs a CI pipeline of its own — the platforms watch GitHub directly.
+Deploy the API as a Render Docker web service from the repository root and the
+dashboard as a Vercel Next.js project rooted at `frontend`. Both use the new
+GitHub repository. The checked-in `render.yaml` configures the backend; the
+[deployment runbook](docs/DEPLOYMENT.md) lists the Vercel settings and GCP setup.
 
-| Layer | Platform | Configuration |
-| --- | --- | --- |
-| API | [Render](https://argo-ak57.onrender.com) · Docker · Free tier, 512MB | Native GitHub integration, builds the root `Dockerfile` |
-| Dashboard | [Vercel](https://argo-lake-phi.vercel.app) · Next.js | Native GitHub integration, root directory `frontend` |
+The image includes the public GitHub Archive warehouse and matching trained
+models. Serving predictions needs no BigQuery credentials or runtime extraction.
+This is a historical 2023-07-01 to 2024-01-01 snapshot, not a live activity feed.
 
-**Render** builds the `Dockerfile` at the repository root with no additional configuration. The image is fully self-contained: the DuckDB warehouse and both trained boosters are committed, so there is no build-time extraction, no training step, and no credentials required. `PORT` is injected by the platform and honoured by the container's `CMD`, which falls back to `7860` locally.
+Set Vercel's `NEXT_PUBLIC_API_URL` to the actual new Render HTTPS origin, without
+`/api/v1` or a trailing slash. It is inlined at build time, so changing it requires
+a new frontend deployment. New live URLs will be recorded after validation.
 
-**Vercel** needs one environment variable:
+Render's Free web service sleeps after inactivity. Test the actual cold-start
+delay before updating the dashboard's notice. Start with the credential-free
+contributor summary; `OPENROUTER_API_KEY` and `OPENROUTER_MODEL` are optional
+backend-only settings for deliberately enabling a live provider.
 
-| Name | Value | Environments |
-| --- | --- | --- |
-| `NEXT_PUBLIC_API_URL` | `https://argo-ak57.onrender.com` | Production, Preview, Development |
-
-It is inlined at build time, so changing it requires a redeploy rather than a restart.
-
-**The free tier sleeps after inactivity.** The first request after an idle period pays a cold start while the container boots, loads two boosters, and computes the Breslow baseline. The dashboard surfaces this rather than hiding it — see `ColdStartNotice`.
+The publish workflow builds and exercises the image before publishing to
+`ghcr.io/yash-rai-93/argo-backend`. BigQuery extraction/retraining is a separate,
+manual workflow that defaults to a dry run and requires a bytes-billed cap to
+execute. An ordinary application push does not query BigQuery or retrain models.
 
 ---
 
