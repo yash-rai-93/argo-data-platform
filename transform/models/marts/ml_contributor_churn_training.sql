@@ -131,7 +131,8 @@ select
     date_diff('day', f.first_event_at, b.observation_end) as tenure_days,
     -- Anchored to the window edge, never max(created_at), so recency stays
     -- comparable across contributors and avoids target-window leakage.
-    date_diff('day', f.last_event_at, b.observation_end) as days_since_last_event,
+    date_diff('day', f.last_event_at, b.observation_end)
+        as days_since_last_event,
     -- Velocity: share of all observed activity that landed in the final 30
     -- days. Near 0 means the contributor has already gone quiet; near 1 means
     -- they only just arrived. nullif guards the zero-event divide.
@@ -140,7 +141,8 @@ select
     ) as velocity_30d,
     -- Deceleration: raw event delta between the two halves of the window.
     -- Positive means slowing down; negative means ramping up.
-    coalesce(f.events_first_half - f.events_second_half, 0) as deceleration_score,
+    coalesce(f.events_first_half - f.events_second_half, 0)
+        as deceleration_score,
     -- Normalised deceleration so the signal is comparable between a maintainer
     -- shedding 400 events and a casual contributor shedding 4.
     coalesce(

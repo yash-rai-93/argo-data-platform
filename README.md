@@ -11,7 +11,7 @@ The deployment is being recreated under `yash-rai-93`. See the [deployment runbo
 | **Cohort** | 3,033 eligible contributors from 77,332 observed |
 | **Data** | `githubarchive.day.*` via BigQuery, 2023-07-01  2024-01-01 |
 | **Stack** | Next.js 16 � FastAPI � DuckDB � dbt 1.12 � XGBoost 3.3 � scikit-survival |
-| **Tests** | 7 contract tests � 8 dbt data tests � 1 singular leakage assertion |
+| **Tests** | 20 Python tests � 8 dbt data tests � 1 singular leakage assertion |
 
 ---
 
