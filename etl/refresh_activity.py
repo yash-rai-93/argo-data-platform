@@ -17,6 +17,8 @@ from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
+from transform.recent_activity import dates, snapshot_quality, weekly_comparison
+
 _ROOT = Path(__file__).resolve().parents[1]
 _DATA = _ROOT / "data"
 _STATE_NAME = "recent-activity-state.json.gz"
@@ -37,6 +39,7 @@ class Window:
     end: date
     coverage_start: date
     requested_end: date
+    mode: str = "incremental"
 
     @property
     def caught_up(self) -> bool:
@@ -64,6 +67,25 @@ def plan_window(state: dict | None, end: date, now: datetime) -> Window | None:
     start = max(coverage, cursor - timedelta(days=OVERLAP_DAYS))
     effective_end = min(end, start + timedelta(days=MAX_DAYS))
     return Window(start, effective_end, coverage, end)
+
+
+def plan_backfill(state: dict | None, end: date, now: datetime) -> Window | None:
+    """Request 28 complete days without rolling back or creating coverage gaps."""
+    if end > available_end(now):
+        raise ValueError("Backfill must leave yesterday and today unqueried (UTC).")
+    start = end - timedelta(days=28)
+    coverage_start = start
+    if state is not None:
+        cursor = date.fromisoformat(state["through_exclusive"])
+        coverage = date.fromisoformat(state["coverage_start"])
+        if end < cursor:
+            raise ValueError("Backfill cannot roll back the approved cursor.")
+        if start > cursor:
+            raise ValueError("Catch up incrementally before backfilling; coverage must stay continuous.")
+        if start >= coverage and end == cursor and state["schema_version"] == 2:
+            return None
+        coverage_start = min(coverage, start)
+    return Window(start, end, coverage_start, end, "backfill")
 
 
 def render_sql(window: Window) -> str:
@@ -143,8 +165,8 @@ def summarize(state: dict, state_sha256: str) -> dict:
                 "contributors": len(bucket["contributors"]),
             }
         )
-    return {
-        "schema_version": 1,
+    summary = {
+        "schema_version": state["schema_version"],
         "status": "ready",
         "mode": "manual",
         "source": "GH Archive via BigQuery",
@@ -159,6 +181,10 @@ def summarize(state: dict, state_sha256: str) -> dict:
         "query": state["query"],
         "state_sha256": state_sha256,
     }
+    if state["schema_version"] == 2:
+        summary["weekly"] = weekly_comparison(state)
+        summary["quality"] = snapshot_quality(state)
+    return summary
 
 
 def encode_state(state: dict) -> bytes:
@@ -186,7 +212,7 @@ def load_state(directory: Path) -> dict | None:
     if len(raw) > MAX_STATE_BYTES:
         raise ValueError("State exceeds the supported size.")
     state = json.loads(raw)
-    if state["schema_version"] != 1:
+    if state["schema_version"] not in (1, 2):
         raise ValueError("Unsupported state schema.")
     window = Window(
         date.fromisoformat(state["coverage_start"]),
@@ -197,6 +223,9 @@ def load_state(directory: Path) -> dict | None:
     if not 0 < (window.end - window.start).days <= RETAIN_DAYS:
         raise ValueError("Invalid retained coverage.")
     validated = merge_events([], state["events"], window)
+    if state["schema_version"] == 2:
+        if state.get("covered_days") != dates(state["coverage_start"], state["through_exclusive"]):
+            raise ValueError("Coverage evidence is missing or has gaps.")
     if validated != state["events"]:
         raise ValueError("Persisted events are duplicated, unordered, or outside coverage.")
     expected = summarize(state, hashlib.sha256(encoded).hexdigest())
@@ -268,6 +297,7 @@ def refresh(
             "estimated_bytes": estimated,
             "maximum_bytes_billed": maximum_bytes_billed,
             "dry_run": dry_run,
+            "mode": window.mode,
             "sql_sha256": hashlib.sha256(sql.encode()).hexdigest(),
         }
         print(json.dumps(report, indent=2))
@@ -283,8 +313,34 @@ def refresh(
         )
         incoming = [dict(row.items()) for row in job.result()]
         events = merge_events(state["events"] if state else [], incoming, window)
+        # Evidence is carried forward only from a valid checkpoint; all new
+        # dates correspond to concrete source tables in this successful query.
+        retained_start = max(
+            window.coverage_start, window.end - timedelta(days=RETAIN_DAYS)
+        ).isoformat()
+        previous_days = set()
+        if state is not None:
+            previous_days = set(state.get("covered_days", dates(
+                state["coverage_start"], state["through_exclusive"]
+            )))
+        queried_days = set(dates(window.start.isoformat(), window.end.isoformat()))
+        retained_days = dates(retained_start, window.end.isoformat())
+        if not set(retained_days).issubset(previous_days | queried_days):
+            raise ValueError("Refresh would leave an unqueried gap in coverage.")
+        incoming_ids = {str(row["event_id"]) for row in incoming}
+        previous_ids = {row["event_id"] for row in state["events"]} if state else set()
         checkpoint = {
-            "schema_version": 1,
+            "schema_version": 2,
+            "covered_days": retained_days,
+            "validated_at": datetime.now(UTC).isoformat(),
+            "quality_run": {
+                "incoming_rows": len(incoming),
+                "duplicate_incoming_ids": len(incoming) - len(incoming_ids),
+                "overlap_ids": len(incoming_ids & previous_ids),
+                "new_ids": len(incoming_ids - previous_ids),
+                "queried_days": len(queried_days),
+                "legacy_coverage_inherited": bool(state and state["schema_version"] == 1),
+            },
             "coverage_start": max(
                 window.coverage_start, window.end - timedelta(days=RETAIN_DAYS)
             ).isoformat(),
@@ -312,6 +368,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--apply", action="store_true")
     parser.add_argument("--validate-only", action="store_true")
+    parser.add_argument("--backfill", action="store_true", help="Estimate/apply a 28-day backfill.")
     parser.add_argument("--project", default=os.environ.get("GOOGLE_CLOUD_PROJECT"))
     parser.add_argument("--location", default="US")
     parser.add_argument("--maximum-bytes-billed", type=bounded_bytes)
@@ -323,7 +380,8 @@ def main() -> None:
             print("Recent activity checkpoint valid.")
             return
         now = datetime.now(UTC)
-        window = plan_window(state, args.end_date or available_end(now), now)
+        planner = plan_backfill if args.backfill else plan_window
+        window = planner(state, args.end_date or available_end(now), now)
         if window is None:
             print("Already caught up to the requested end; no BigQuery call.")
             return

@@ -33,7 +33,7 @@ ARGO connects public GitHub Archive events, a tested DuckDB/dbt warehouse, two X
 | Capability | What the application provides |
 | --- | --- |
 | **Explore contributor health** | Active contributors, PR/issue throughput, retention, monthly trends, and weekly sparklines anchored to the historical dataset. |
-| **Review recent activity** | Real event counts, unique contributors, PR/issue counts, daily activity, and explicit freshness from a manually refreshed snapshot. |
+| **Review recent activity** | Real event counts, unique contributors, PR/issue events, daily activity, and explicit freshness from a manually refreshed snapshot. After 14 covered days, compare consecutive seven-day periods and inspect repository/category drivers. |
 | **Prioritize a retention review** | Select the 200 highest-volume eligible contributors, score them in one Cox batch, and show the 20 highest predicted hazards with survival curves. |
 | **Run prediction scenarios** | Submit 16 features to receive classifier probability, relative hazard, a study-time survival curve, and SHAP contributions. |
 | **Explore threshold tradeoffs** | Sweep the classifier threshold against the cached **607-row holdout** and inspect the resulting confusion matrix. |
@@ -236,6 +236,27 @@ For current coverage, inspect [data/recent-activity.json](data/recent-activity.j
 **To refresh:** open **Actions → Data maintenance (manual)** on `main`, run `incremental-dry-run`, review its exact dates, then run `incremental-refresh` with the chosen cap and exclusive end date. Review and merge the resulting `data/manual-refresh` PR. Full instructions and failure recovery are in [docs/MANUAL_REFRESH.md](docs/MANUAL_REFRESH.md).
 
 Query caps apply to the data query, not the entire billing account. Applicable credits/free allowances, data transfer, Actions usage, and hosting/build limits determine actual costs. Historical retraining remains a separate manual operation.
+
+
+### Weekly changes and snapshot quality
+
+A bounded **28-day backfill** can extend the first recent snapshot; later manual
+refreshes retain up to 90 days. The dashboard compares the latest seven covered
+UTC days with the preceding seven only when both are fully covered. It reports
+event and contributor changes, returning/joining/absent contributors, and
+exhaustive repository/event-category event deltas. Joining means absent from the
+previous period, not new to open source; absence does not establish churn.
+
+New snapshots record daily source coverage, incoming duplicate IDs, checkpoint
+overlap, validation results, and provenance. Data age is shown separately from
+validity. Older snapshots show unrecorded checks explicitly. Reading every
+expected GH Archive table verifies query coverage, not capture of every GitHub
+event.
+
+See the [reproducible activity investigation](docs/investigations/activity-concentration.md).
+It records the exact snapshot used; its initial seven-day findings are not a
+four-week comparison. Reproduce against an approved expanded snapshot with
+`uv run python -m etl.investigate_activity` before updating its conclusions.
 
 ## Quick start
 
