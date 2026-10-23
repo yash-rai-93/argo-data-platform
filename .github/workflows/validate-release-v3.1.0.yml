@@ -1,0 +1,199 @@
+name: Validate and publish v3.1.0
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened]
+    paths:
+      - .github/workflows/validate-release-v3.1.0.yml
+
+permissions:
+  contents: read
+
+jobs:
+  browser-check:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'chore/validate-release-v3.1.0'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install isolated browser tooling
+        run: |
+          npm install --prefix "$RUNNER_TEMP/argo-browser" playwright@1.64.1
+          "$RUNNER_TEMP/argo-browser/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Check production dashboard interactions
+        run: |
+          cat > "$RUNNER_TEMP/argo-browser/check.cjs" <<'JS'
+          const assert = require("node:assert/strict");
+          const fs = require("node:fs/promises");
+          const path = require("node:path");
+          const { chromium } = require("playwright");
+
+          (async () => {
+            const out = path.join(process.env.RUNNER_TEMP, "argo-browser", "artifacts");
+            await fs.mkdir(out, { recursive: true });
+            const browser = await chromium.launch();
+            const context = await browser.newContext({
+              viewport: { width: 1440, height: 1000 },
+              acceptDownloads: true,
+            });
+            const page = await context.newPage();
+            page.setDefaultTimeout(45000);
+            const errors = [];
+            page.on("pageerror", error => errors.push(error.message));
+            const passed = [];
+            function pass(message) { passed.push(message); console.log("PASS " + message); }
+            try {
+              const metricsResponse = page.waitForResponse(response =>
+                response.url().endsWith("/api/v1/metrics/executive") && response.ok());
+              await page.goto("https://argo-data-platform.vercel.app/", {
+                waitUntil: "domcontentloaded", timeout: 90000,
+              });
+              const metrics = await (await metricsResponse).json();
+              await page.getByText("Active Contributors (30d)", { exact: true }).waitFor();
+              assert(Number.isFinite(metrics.active_contributors));
+              await page.locator(".recharts-wrapper svg").first().waitFor();
+              assert(!(await page.getByText("Summary unavailable. Please try again.", { exact: true }).isVisible()));
+              pass("overview metrics, chart, and summary");
+
+              const holdoutResponse = page.waitForResponse(response =>
+                response.url().endsWith("/api/v1/predict/simulate/threshold") && response.ok());
+              await page.getByRole("button", { name: /^Retention\b/i }).click();
+              const holdout = await (await holdoutResponse).json();
+              assert.equal(holdout.n, 607);
+              await page.getByRole("button", { name: /Open profile for/ }).first().waitFor();
+              await page.getByRole("button", { name: /Open profile for/ }).first().click();
+              await page.getByRole("button", { name: "Clear selection", exact: true }).click();
+              pass("retention queue and contributor selection");
+
+              await page.getByRole("button", { name: "Fading Core Maintainer", exact: true }).click();
+              const predictionResponse = page.waitForResponse(response =>
+                response.url().endsWith("/api/v1/predict/churn") && response.request().method() === "POST");
+              await page.getByRole("button", { name: "Predict Churn", exact: true }).click();
+              const response = await predictionResponse;
+              assert(response.ok(), "Prediction HTTP status " + response.status());
+              const prediction = await response.json();
+              assert.equal(prediction.shap_attribution.length, 16);
+              assert(prediction.survival_curve.length > 0);
+              await page.getByRole("heading", { name: "Projected Survival", exact: true }).waitFor();
+              await page.getByRole("heading", { name: /Model Explainability/ }).waitFor();
+              pass("prediction, survival chart, and SHAP attribution");
+
+              const slider = page.getByRole("slider");
+              await slider.focus();
+              await slider.press("End");
+              await page.waitForFunction(() => document.querySelector('input[type="range"]').value === "1");
+              const expectedTp = holdout.y_prob.reduce((n, p, i) =>
+                n + (p >= 1 && holdout.y_true[i] === 1 ? 1 : 0), 0);
+              const tp = page.getByText("True Positives", { exact: true }).locator("..").locator("p").first();
+              await page.waitForTimeout(300);
+              assert.equal(Number(await tp.innerText()), expectedTp);
+              pass("threshold slider recomputes holdout confusion matrix");
+
+              const downloadPromise = page.waitForEvent("download", { timeout: 90000 });
+              await page.getByRole("button", { name: "Export Report (PDF)", exact: true }).click();
+              const download = await downloadPromise;
+              assert.equal(download.suggestedFilename(), "ARGO_Executive_Board_Report.pdf");
+              const pdfPath = path.join(out, download.suggestedFilename());
+              await download.saveAs(pdfPath);
+              const pdf = await fs.readFile(pdfPath);
+              assert.equal(pdf.subarray(0, 5).toString("ascii"), "%PDF-");
+              assert(pdf.length > 10000);
+              pass("PDF export downloads a nonempty PDF");
+
+              await page.getByRole("button", { name: "ML Engine", exact: true }).click();
+              await page.getByRole("heading", { name: "Model Registry", exact: true }).first().waitFor();
+              await page.getByRole("button", { name: "Settings", exact: true }).click();
+              await page.getByRole("heading", { name: "Data Governance", exact: true }).waitFor();
+              await page.getByRole("button", { name: "Command Suite", exact: true }).click();
+              await page.getByText("Active Contributors (30d)", { exact: true }).waitFor();
+              assert.deepEqual(errors, []);
+              pass("desktop tabs and no uncaught browser errors");
+
+              const mobile = await browser.newPage({ viewport: { width: 390, height: 844 } });
+              await mobile.goto("https://argo-data-platform.vercel.app/", {
+                waitUntil: "domcontentloaded", timeout: 90000,
+              });
+              await mobile.getByText("Active Contributors (30d)", { exact: true }).waitFor();
+              const mobileNavigationVisible = await mobile.getByRole("button", { name: /^Retention\b/i }).isVisible();
+              console.log("Mobile tab navigation visible: " + mobileNavigationVisible);
+              await fs.writeFile(path.join(out, "browser-check.json"), JSON.stringify({
+                source_commit: "3257eff1f1996b910aef758c4a292b7f4ea13530",
+                passed, mobileNavigationVisible, pdf_bytes: pdf.length,
+                limitations: ["Actual idle cold-start duration was not measured."],
+              }, null, 2));
+            } catch (error) {
+              await page.screenshot({ path: path.join(out, "failure.png"), fullPage: true }).catch(() => {});
+              throw error;
+            } finally {
+              await browser.close();
+            }
+          })().catch(error => { console.error(error); process.exitCode = 1; });
+          JS
+          node "$RUNNER_TEMP/argo-browser/check.cjs"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: argo-v3.1.0-browser-check
+          path: ${{ runner.temp }}/argo-browser/artifacts
+          retention-days: 7
+
+  release:
+    needs: browser-check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: yash-rai-93/argo-data-platform
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: argo-v3.1.0-browser-check
+          path: browser-check
+      - name: Publish verified deployment release
+        run: |
+          cat > /tmp/argo-release-notes.md <<'NOTES'
+          ARGO is deployed under yash-rai-93 with a reproduced public GitHub Archive warehouse and matched model artifacts.
+
+          - Dashboard: https://argo-data-platform.vercel.app/
+          - API documentation: https://argo-api-yash.onrender.com/docs
+          - Release commit: 3257eff1f1996b910aef758c4a292b7f4ea13530
+
+          Changes:
+          - Rebuilt 547,434 historical events using GCP project argo-data-yash-93 and a bounded BigQuery query.
+          - Retrained both models on a 3,031-contributor cohort with a chronological 2,424 / 607 split.
+          - Cox holdout C-index: 0.7063. Classifier holdout ROC-AUC: 0.7608.
+          - Promoted the warehouse, model/parameter pairs, and evaluation charts together with SHA-256 provenance in argo-artifacts.json.
+          - Configured GitHub OIDC authentication, manual cost-bounded rebuilds, container validation, and live deployment verification.
+
+          Validation:
+          - Python, dbt/leakage, SQL, frontend, and container CI passed.
+          - Live API cohort, source rows, model settings, dbt invocation, and both published chart hashes matched the committed rebuild.
+          - Desktop Chromium checks covered dashboard metrics, contributor selection, predictions, survival/SHAP output, threshold changes, PDF download, and tabs.
+
+          This is a historical snapshot for [2023-07-01, 2024-01-01), not a live GitHub activity feed. Published browser-check evidence is available in the release workflow artifacts. Actual idle cold-start duration was not measured.
+          NOTES
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          result = json.loads(Path("browser-check/browser-check.json").read_text())
+          if result["source_commit"] != "3257eff1f1996b910aef758c4a292b7f4ea13530" or len(result["passed"]) != 7:
+              raise RuntimeError("Unexpected browser verification report")
+          if not result["mobileNavigationVisible"]:
+              with Path("/tmp/argo-release-notes.md").open("a") as notes:
+                  notes.write("\nKnown limitation: tab navigation is hidden on narrow mobile screens; use a desktop-width browser for the full dashboard.\n")
+          PY
+          if gh api repos/yash-rai-93/argo-data-platform/git/ref/tags/v3.1.0 >/dev/null 2>&1; then
+            echo "Tag v3.1.0 already exists; refusing to move it."
+            exit 1
+          fi
+          gh release create v3.1.0 \
+            --target 3257eff1f1996b910aef758c4a292b7f4ea13530 \
+            --title "v3.1.0 — Verified redeployment" \
+            --notes-file /tmp/argo-release-notes.md \
+            --latest
