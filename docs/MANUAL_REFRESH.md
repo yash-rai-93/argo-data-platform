@@ -32,7 +32,9 @@ bucket, database, or paid always-on service are required.
 
 ## What is fetched and retained
 
-- The historical repository scope is reused, including the current\n  `fastapi/fastapi` name alongside its old `tiangolo/fastapi` alias.\n- First run: seven recent days, independent of the old July–December 2023 study.
+- The historical repository scope is reused, including the current
+  `fastapi/fastapi` name alongside its old `tiangolo/fastapi` alias.
+- First run: seven recent days, independent of the old July–December 2023 study.
   It never attempts to fill the gap between 2023 and today.
 - Subsequent runs: start at the last **approved** exclusive-end cursor, re-read
   two preceding days for late arrivals, then upsert by stable `event_id`.

@@ -1,9 +1,11 @@
 # Redeploying Argo under yash-rai-93
 
-This deployment serves a documented historical public GitHub Archive snapshot.
-The study spans [2023-07-01, 2024-01-01), with features ending at 2023-11-01.
-It is not a live event feed. Synthetic fixtures are for tests; published model
-results must identify their real data source and evaluation window.
+This deployment serves a historical GitHub Archive model study and a separate,
+manually refreshed recent-activity snapshot. The model study spans
+[2023-07-01, 2024-01-01), with features ending at 2023-11-01. Recent activity
+updates only after a manual refresh and data-PR promotion; it does not retrain
+the models. Synthetic fixtures are for tests; published model results must
+identify their real data source and evaluation window.
 
 The warehouse and both trained models are committed. First validate and deploy
 that matched set; BigQuery access and historical reproduction are separate work.
@@ -116,10 +118,15 @@ Budget notifications do not stop queries. Use the per-query bytes-billed limit
 as the execution guardrail, alongside suitable query quotas. Do not assume a
 filtered query is free without checking its estimate.
 
-In GitHub Actions, run “Rebuild historical data” from main:
-- dry-run is the default and only estimates the scan.
-- rebuild requires a positive maximum_bytes_billed input.
-- No query or retraining happens on ordinary pushes or pull requests.
+In GitHub Actions, run **Data maintenance (manual)** from main and select a
+historical operation explicitly:
+
+- `dry-run` estimates the full historical scan.
+- `rebuild` requires a positive `maximum_bytes_billed` input and rebuilds the matched training artifacts.
+- No extraction or retraining happens on ordinary pushes or pull requests.
+
+The workflow defaults to `incremental-dry-run`, which estimates the separate
+recent-activity path. See [MANUAL_REFRESH.md](MANUAL_REFRESH.md) for those operations.
 
 The workflow builds dbt models/tests, ingests governance artifacts, trains both
 models, generates evaluation charts and decomposition, and smoke-tests the API.
