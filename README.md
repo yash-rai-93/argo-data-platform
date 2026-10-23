@@ -253,10 +253,12 @@ validity. Older snapshots show unrecorded checks explicitly. Reading every
 expected GH Archive table verifies query coverage, not capture of every GitHub
 event.
 
-See the [reproducible activity investigation](docs/investigations/activity-concentration.md).
-It records the exact snapshot used; its initial seven-day findings are not a
-four-week comparison. Reproduce against an approved expanded snapshot with
-`uv run python -m etl.investigate_activity` before updating its conclusions.
+See the [28-day activity investigation](docs/investigations/activity-concentration.md).
+Its matched September 24–October 21, 2026 snapshot contains **5,657 events** and
+**1,116 contributors**. The latest week's event count fell **34.62%**, while
+PR/issue-category events rose **4%**; the report examines repository drivers and
+single-account concentration. It records its exact checksum and reproduction
+steps, and makes no causal or current-model-performance claim.
 
 ## Quick start
 
