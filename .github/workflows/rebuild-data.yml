@@ -91,7 +91,7 @@ jobs:
           uv run uvicorn api.main:app --host 127.0.0.1 --port 7860 > /tmp/argo-api.log 2>&1 &
           api_pid=$!
           trap 'kill "$api_pid" 2>/dev/null || true' EXIT
-          for i in $(seq 1 120); do
+          for _ in $(seq 1 120); do
             if curl -fs --max-time 2 http://localhost:7860/health > /dev/null; then
               uv run python -m api.smoke_test
               exit 0
@@ -181,10 +181,12 @@ jobs:
             }
           fi
           if [ "$OPERATION" = "incremental-refresh" ]; then
-            [[ "$CAP" =~ ^[1-9][0-9]{0,10}$ ]] && (( CAP <= 20000000000 )) || {
+            if [[ "$CAP" =~ ^[1-9][0-9]{0,10}$ ]] && (( CAP <= 20000000000 )); then
+              echo "Explicit query cap: $CAP bytes"
+            else
               echo "Set a positive cap of at most 20000000000 bytes after reviewing the estimate."
               exit 1
-            }
+            fi
           fi
       - uses: astral-sh/setup-uv@v5
         with:
