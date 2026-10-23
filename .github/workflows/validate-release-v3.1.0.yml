@@ -3,7 +3,7 @@ name: Validate and publish v3.1.0
 on:
   pull_request:
     branches: [main]
-    types: [opened]
+    types: [opened, synchronize]
     paths:
       - .github/workflows/validate-release-v3.1.0.yml
 
@@ -46,6 +46,8 @@ jobs:
             const passed = [];
             function pass(message) { passed.push(message); console.log("PASS " + message); }
             try {
+              const summaryResponse = page.waitForResponse(response =>
+                response.url().endsWith("/api/v1/intelligence/summary") && response.ok());
               const metricsResponse = page.waitForResponse(response =>
                 response.url().endsWith("/api/v1/metrics/executive") && response.ok());
               await page.goto("https://argo-data-platform.vercel.app/", {
@@ -55,7 +57,9 @@ jobs:
               await page.getByText("Active Contributors (30d)", { exact: true }).waitFor();
               assert(Number.isFinite(metrics.active_contributors));
               await page.locator(".recharts-wrapper svg").first().waitFor();
-              assert(!(await page.getByText("Summary unavailable. Please try again.", { exact: true }).isVisible()));
+              const summary = await (await summaryResponse).json();
+              assert(summary.summary.trim().length > 0);
+              await page.getByText(summary.summary, { exact: true }).waitFor();
               pass("overview metrics, chart, and summary");
 
               const holdoutResponse = page.waitForResponse(response =>
