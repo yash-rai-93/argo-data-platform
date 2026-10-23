@@ -1,0 +1,104 @@
+name: Stage verified rebuild 39998805393
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened]
+    paths:
+      - .github/workflows/stage-rebuild-39998805393.yml
+
+permissions:
+  contents: read
+
+jobs:
+  stage:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'chore/import-rebuild-39998805393'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 1545ec50330f5518ca114e06faaf1ce530798474
+      - name: Download exact successful rebuild
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api repos/yash-rai-93/argo-data-platform/actions/runs/39998805393 > /tmp/argo-run.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          run = json.loads(Path("/tmp/argo-run.json").read_text())
+          if (
+              run["conclusion"] != "success"
+              or run["head_sha"] != "1545ec50330f5518ca114e06faaf1ce530798474"
+              or run["head_branch"] != "main"
+              or run["event"] != "workflow_dispatch"
+              or run["path"] != ".github/workflows/rebuild-data.yml"
+              or run["repository"]["id"] != 1431184872
+          ):
+              raise RuntimeError("Unexpected rebuild source")
+          PY
+          curl --fail --silent --show-error --location \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --output /tmp/argo-rebuild.zip \
+            https://api.github.com/repos/yash-rai-93/argo-data-platform/actions/artifacts/12520533719/zip
+          echo "30719c7861f9beccf6475b69948808a4cd074e1455f726c0dd91f92f9dbd9c91  /tmp/argo-rebuild.zip" | sha256sum --check
+      - name: Verify provenance and stage matching files
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+          from zipfile import ZipFile
+
+          expected = {
+              "transform/argo.duckdb",
+              "ml/models/churn_cox.json",
+              "ml/models/churn_cox_params.json",
+              "ml/models/churn_xgb.json",
+              "ml/models/churn_xgb_params.json",
+              "frontend/public/assets/survival_curves.png",
+              "frontend/public/assets/shap_summary.png",
+          }
+          with ZipFile("/tmp/argo-rebuild.zip") as archive:
+              entries = [entry for entry in archive.infolist() if not entry.is_dir()]
+              if (
+                  len(entries) != 8
+                  or {entry.filename for entry in entries} != expected | {"argo-artifacts.json"}
+                  or sum(entry.file_size for entry in entries) > 100_000_000
+              ):
+                  raise RuntimeError("Unexpected artifact contents")
+              metadata = json.loads(archive.read("argo-artifacts.json"))
+              if (
+                  metadata["source_commit"] != "1545ec50330f5518ca114e06faaf1ce530798474"
+                  or str(metadata["run_id"]) != "39998805393"
+                  or metadata["source"] != "githubarchive.day.2023*"
+                  or metadata["window"] != "[2023-07-01, 2024-01-01)"
+                  or set(metadata["sha256"]) != expected
+              ):
+                  raise RuntimeError("Unexpected artifact provenance")
+              for name in sorted(expected):
+                  data = archive.read(name)
+                  if hashlib.sha256(data).hexdigest() != metadata["sha256"][name]:
+                      raise RuntimeError(f"Checksum mismatch: {name}")
+                  path = Path(name)
+                  path.parent.mkdir(parents=True, exist_ok=True)
+                  path.write_bytes(data)
+                  print(f"PASS checksum {name}")
+              Path("argo-artifacts.json").write_bytes(archive.read("argo-artifacts.json"))
+          print(json.dumps(metadata, indent=2))
+          print(Path("ml/models/churn_cox_params.json").read_text())
+          print(Path("ml/models/churn_xgb_params.json").read_text())
+          PY
+      - name: Create artifact review branch
+        run: |
+          git switch -c data/rebuild-39998805393
+          git config user.name "Yash Rai"
+          git config user.email "132800857+yash-rai-93@users.noreply.github.com"
+          git add -- transform/argo.duckdb ml/models/churn_cox.json ml/models/churn_cox_params.json ml/models/churn_xgb.json ml/models/churn_xgb_params.json frontend/public/assets/survival_curves.png frontend/public/assets/shap_summary.png argo-artifacts.json
+          git commit -m "chore: promote verified historical rebuild 39998805393"
+          git push origin HEAD:refs/heads/data/rebuild-39998805393
