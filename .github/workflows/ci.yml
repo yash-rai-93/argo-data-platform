@@ -10,6 +10,15 @@ permissions:
   contents: read
 
 jobs:
+  workflow-syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate manual data workflow and shell scripts
+        uses: docker://rhysd/actionlint:1.7.12
+        with:
+          args: -color .github/workflows/rebuild-data.yml
+
   lint-and-test:
     runs-on: ubuntu-latest
     steps:
