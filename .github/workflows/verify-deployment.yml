@@ -189,3 +189,54 @@ jobs:
                   raise RuntimeError("Prediction preflight rejected JSON POST requests")
               print("PASS prediction JSON POST preflight")
           PY
+
+  browser-walkthrough:
+    needs: live-deployment
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      API_URL: ${{ inputs.api_url || 'https://argo-api-yash.onrender.com' }}
+      FRONTEND_URL: ${{ inputs.frontend_url || 'https://argo-data-platform.vercel.app' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install browser tooling on the runner
+        run: |
+          npm install --prefix "$RUNNER_TEMP/argo-browser" --no-save --no-audit --no-fund playwright@1.62.1
+          "$RUNNER_TEMP/argo-browser/node_modules/.bin/playwright" install --with-deps chromium
+          sudo apt-get install -y poppler-utils
+      - name: Build the candidate frontend for PR browser verification
+        if: github.event_name == 'pull_request'
+        working-directory: frontend
+        env:
+          NEXT_PUBLIC_API_URL: ${{ env.API_URL }}
+        run: |
+          npm ci
+          npm run build
+      - name: Start the candidate frontend
+        if: github.event_name == 'pull_request'
+        run: |
+          cd frontend
+          npm run start -- --hostname 127.0.0.1 --port 3000 > "$RUNNER_TEMP/argo-frontend.log" 2>&1 &
+          ready=false
+          for _ in $(seq 1 60); do
+            if curl -fs http://127.0.0.1:3000 > /dev/null; then ready=true; break; fi
+            sleep 1
+          done
+          if [ "$ready" != true ]; then cat "$RUNNER_TEMP/argo-frontend.log"; exit 1; fi
+          echo "FRONTEND_URL=http://127.0.0.1:3000" >> "$GITHUB_ENV"
+      - name: Walk through the desktop and mobile interface
+        run: |
+          NODE_PATH="$RUNNER_TEMP/argo-browser/node_modules" \
+          ARGO_BROWSER_OUTPUT="$RUNNER_TEMP/argo-browser-results" \
+          node tests/browser_walkthrough.cjs
+      - name: Retain screenshots, report, and exported PDF
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: argo-browser-walkthrough
+          path: ${{ runner.temp }}/argo-browser-results
+          retention-days: 7
+          if-no-files-found: warn

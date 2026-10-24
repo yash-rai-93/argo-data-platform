@@ -106,11 +106,16 @@ export default function Home() {
   const [throughputSpark, setThroughputSpark] = useState<number[]>([]);
   const [retentionSpark, setRetentionSpark] = useState<number[]>([]);
   const [isExporting, setIsExporting] = useState<boolean>(false);
+  const [exportError, setExportError] = useState<string>("");
 
   async function handleExport() {
     setIsExporting(true);
+    setExportError("");
     try {
       await generateBoardReport();
+    } catch (error) {
+      console.error("Board report export failed:", error);
+      setExportError("The report could not be exported. Please try again.");
     } finally {
       setIsExporting(false);
     }
@@ -421,6 +426,11 @@ export default function Home() {
               </div>
             </header>
 
+            {exportError && (
+              <p role="alert" className="mb-4 rounded-lg border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-300">
+                {exportError}
+              </p>
+            )}
             <div id="argo-workspace">{renderWorkspace()}</div>
           </div>
         </main>

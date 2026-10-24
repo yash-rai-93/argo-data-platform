@@ -1,67 +1,153 @@
-import { toPng } from "html-to-image";
+import { toCanvas } from "html-to-image";
 import jsPDF from "jspdf";
 
 const TARGET_ID = "argo-workspace";
 const BACKGROUND = "#020408";
 const FILENAME = "ARGO_Executive_Board_Report.pdf";
+const MARGIN = 24;
+const FOOTER = 20;
 
-// Loads a data URL into an Image so the true pixel dimensions are known before
-// the PDF page is laid out. html-to-image returns only the encoded string.
-function loadImage(dataUrl: string): Promise<HTMLImageElement> {
-  return new Promise<HTMLImageElement>((resolve, reject) => {
-    const image = new Image();
-    image.onload = () => resolve(image);
-    image.onerror = () => reject(new Error("Failed to decode captured PNG"));
-    image.src = dataUrl;
-  });
+// Keep rows, short text blocks, controls, and charts together when they fit.
+// Large sections can span pages without shrinking the whole workspace.
+function pageSlices(
+  target: HTMLElement,
+  canvas: HTMLCanvasElement,
+  pagePixels: number,
+): Array<[number, number]> {
+  const bounds = target.getBoundingClientRect();
+  const pixelScale = canvas.width / bounds.width;
+  const rectangles = Array.from(
+    target.querySelectorAll("tr, h2, h3, input, button, .recharts-wrapper"),
+    (element) => element.getBoundingClientRect(),
+  );
+  // A paragraph or outreach draft may be tall. Protect its individual lines,
+  // rather than moving the whole paragraph onto a mostly empty next page.
+  for (const element of target.querySelectorAll("p, pre")) {
+    const range = document.createRange();
+    range.selectNodeContents(element);
+    rectangles.push(...Array.from(range.getClientRects()));
+    range.detach();
+  }
+  const blocks = rectangles
+    .map((rect) => ({
+      start: (rect.top - bounds.top) * pixelScale,
+      end: (rect.bottom - bounds.top) * pixelScale,
+    }))
+    .filter((block) => block.end > block.start && block.end - block.start <= pagePixels);
+
+  const slices: Array<[number, number]> = [];
+  let start = 0;
+  while (start < canvas.height) {
+    let end = Math.min(start + pagePixels, canvas.height);
+    if (end < canvas.height) {
+      while (true) {
+        // Adjacent row edges can differ by a fractional capture pixel.
+        // Ignore that overlap so rounding cannot walk backwards through rows.
+        const crossing = blocks.filter(
+          (block) =>
+            block.start < end - 1 &&
+            block.end > end + 1 &&
+            block.start > start + pagePixels * 0.45,
+        );
+        if (crossing.length === 0) break;
+        const safeEnd = Math.round(Math.min(...crossing.map((block) => block.start)));
+        if (safeEnd <= start || safeEnd >= end) break;
+        end = safeEnd;
+      }
+    }
+    slices.push([start, end]);
+    start = end;
+  }
+  return slices;
 }
 
-// Captures the live workspace DOM and exports it as a landscape PDF board report.
-// html-to-image serialises the node to SVG foreignObject and rasterises it in the
-// browser's own renderer, so Tailwind v4 oklch() colors and backdrop-filter
-// glassmorphism survive the capture. html2canvas reimplements CSS itself and
-// throws on both.
+// Capture with the browser renderer so Tailwind v4 colors and SVG charts work.
+// Encode only each page's pixels as JPEG: embedding a full uncompressed PNG
+// produced a roughly 49 MB single-page export and made long reports unreadable.
 export async function generateBoardReport(): Promise<void> {
-  try {
-    const target: HTMLElement | null = document.getElementById(TARGET_ID);
-    if (!target) {
-      throw new Error(`Workspace element #${TARGET_ID} not found`);
+  const target = document.getElementById(TARGET_ID);
+  if (!target) throw new Error("The report workspace is unavailable.");
+  await document.fonts.ready;
+
+  const capture = await toCanvas(target, {
+    backgroundColor: BACKGROUND,
+    pixelRatio: 1.5,
+    cacheBust: true,
+    filter: (node) => {
+      if (!(node instanceof Element)) return true;
+      const closed = node.parentElement?.closest("details:not([open])");
+      return !closed || Boolean(node.closest("summary"));
+    },
+  });
+  if (!capture.width || !capture.height) {
+    throw new Error("The report workspace is empty.");
+  }
+
+  const doc = new jsPDF({
+    orientation: "landscape",
+    unit: "px",
+    format: "a4",
+    compress: true,
+  });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const contentWidth = pageWidth - 2 * MARGIN;
+  const contentHeight = pageHeight - 2 * MARGIN - FOOTER;
+  const fullScale = contentWidth / capture.width;
+  let scale = fullScale;
+  let pagePixels = Math.max(1, Math.floor(contentHeight / scale));
+  let slices = pageSlices(target, capture, pagePixels);
+  // Avoid a page containing only a trailing caption. A small width adjustment
+  // is acceptable; never shrink the report by more than eight percent.
+  if (slices.length > 1 && slices.at(-1)![1] - slices.at(-1)![0] < pagePixels * 0.2) {
+    for (const fit of [0.98, 0.96, 0.94, 0.92]) {
+      const candidateScale = fullScale * fit;
+      const candidatePixels = Math.max(1, Math.floor(contentHeight / candidateScale));
+      const candidate = pageSlices(target, capture, candidatePixels);
+      if (candidate.length < slices.length) {
+        scale = candidateScale;
+        pagePixels = candidatePixels;
+        slices = candidate;
+        break;
+      }
     }
+  }
+  const renderWidth = capture.width * scale;
+  const offsetX = (pageWidth - renderWidth) / 2;
 
-    const dataUrl: string = await toPng(target, {
-      quality: 0.95,
-      backgroundColor: BACKGROUND,
-      pixelRatio: 2,
-      cacheBust: true,
-    });
-
-    const image: HTMLImageElement = await loadImage(dataUrl);
-
-    // Initialize a landscape PDF sized to the captured aspect ratio.
-    const doc = new jsPDF({
-      orientation: "landscape",
-      unit: "px",
-      format: "a4",
-    });
-    const pageWidth: number = doc.internal.pageSize.getWidth();
-    const pageHeight: number = doc.internal.pageSize.getHeight();
-
-    // Scale the capture to fit within the page while preserving proportions.
-    const ratio: number = Math.min(
-      pageWidth / image.width,
-      pageHeight / image.height,
-    );
-    const renderWidth: number = image.width * ratio;
-    const renderHeight: number = image.height * ratio;
-    const offsetX: number = (pageWidth - renderWidth) / 2;
-    const offsetY: number = (pageHeight - renderHeight) / 2;
+  slices.forEach(([start, end], index) => {
+    if (index > 0) doc.addPage();
+    const page = document.createElement("canvas");
+    page.width = capture.width;
+    page.height = end - start;
+    const context = page.getContext("2d");
+    if (!context) throw new Error("The report image could not be created.");
+    context.drawImage(capture, 0, start, capture.width, end - start, 0, 0, page.width, page.height);
 
     doc.setFillColor(BACKGROUND);
     doc.rect(0, 0, pageWidth, pageHeight, "F");
-    doc.addImage(dataUrl, "PNG", offsetX, offsetY, renderWidth, renderHeight);
-    doc.save(FILENAME);
-  } catch (error) {
-    // Surface the failure without crashing the dashboard.
-    console.error("Board report export failed:", error);
-  }
+    doc.addImage(
+      page.toDataURL("image/jpeg", 0.88),
+      "JPEG",
+      offsetX,
+      MARGIN,
+      renderWidth,
+      page.height * scale,
+      undefined,
+      "FAST",
+    );
+    doc.setFontSize(9);
+    doc.setTextColor("#94a3b8");
+    doc.text(
+      "ARGO - Page " + (index + 1) + " / " + slices.length,
+      pageWidth - MARGIN,
+      pageHeight - 12,
+      { align: "right" },
+    );
+    page.width = 0;
+    page.height = 0;
+  });
+  capture.width = 0;
+  capture.height = 0;
+  doc.save(FILENAME);
 }
