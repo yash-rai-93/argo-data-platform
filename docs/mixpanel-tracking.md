@@ -41,7 +41,6 @@ Verify on a development build:
 6. Check DNT/GPC, SDK load failure, and local-storage failure.
 7. Confirm at least one real event in Mixpanel Live View before calling setup live.
 
-The connector currently exposes only a demo E-Commerce project and rejects
-business-context access. Live View verification and project residency/identity
-settings remain unverified. No production events have been intentionally sent
+Mixpanel project yash (4028794) is accessible through the connector.
+Live View verification and project residency/identity settings remain unverified. No production events have been intentionally sent
 during implementation.
