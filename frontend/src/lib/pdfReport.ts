@@ -41,14 +41,16 @@ function pageSlices(
     let end = Math.min(start + pagePixels, canvas.height);
     if (end < canvas.height) {
       while (true) {
+        // Adjacent row edges can differ by a fractional capture pixel.
+        // Ignore that overlap so rounding cannot walk backwards through rows.
         const crossing = blocks.filter(
           (block) =>
-            block.start < end &&
-            block.end > end &&
+            block.start < end - 1 &&
+            block.end > end + 1 &&
             block.start > start + pagePixels * 0.45,
         );
         if (crossing.length === 0) break;
-        const safeEnd = Math.floor(Math.min(...crossing.map((block) => block.start)));
+        const safeEnd = Math.round(Math.min(...crossing.map((block) => block.start)));
         if (safeEnd <= start || safeEnd >= end) break;
         end = safeEnd;
       }
