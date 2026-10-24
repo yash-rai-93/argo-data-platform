@@ -4,11 +4,18 @@
 
 Target: 500 versioned repositories and 90 complete UTC days, followed by scheduled
 ingestion, Kafka/PySpark processing, Airflow orchestration and pipeline observability.
-The scope registry and seven-day GCS pilot are implemented.
-The resumable 90-day controller is now implemented; see [90-day runbook](BACKFILL_90_DAYS.md).
-The seven-day pilot succeeded in run 40103121780 with 4,009 events and
-1,677 distinct accounts. The 90-day backfill has not run yet. Credit balance and
-expiry remain unverified. The production report remains on its approved checkpoint.
+The 500-repository, 90-day backfill is published at
+https://argo-data-platform.vercel.app/community after PRs #20 and #21.
+The approved July 25-October 22, 2026 snapshot contains 94,133 events and
+27,936 distinct accounts; 421 of the 500 selected repositories have observed events.
+All 13 batch checksums and 90 covered days reconciled, with no cross-batch duplicate IDs.
+
+The bounded incremental implementation is ready for its first cloud run:
+see [incremental ingestion runbook](INCREMENTAL_COMMUNITY.md).
+It queries new days with a two-day overlap and retains a rolling 90-day report.
+Cloud deployment evidence for incremental ingestion is still pending.
+Airflow, Kafka and PySpark remain future milestones. Credit balance and expiry
+remain independently unverified.
 
 ## Milestones
 
@@ -18,7 +25,8 @@ expiry remain unverified. The production report remains on its approved checkpoi
 4. Implement resumable 90-day backfill with a generation-guarded approved cursor,
    cumulative cost accounting and overlap/repair policies.
 5. Reconcile the expanded scope and publish versioned dashboard aggregates.
-6. Add Airflow ingestion/backfill/validation/publication DAGs.
+6. Validate incremental daily ingestion, then add Airflow
+   ingestion/backfill/validation/publication DAGs.
 7. Add Kafka and PySpark with replay, deduplication, late-event handling and
    idempotent sinks; persist checkpoints outside disposable compute.
 8. Benchmark recovery, throughput, processing latency and cost; extend report health.
@@ -66,9 +74,9 @@ Before a paid pilot:
 - Set the repository Actions variable `GCP_DATA_BUCKET` to the bare bucket name.
 - Add budget alerts and appropriate BigQuery quotas. Alerts alone do not stop usage.
   Every pilot data query separately enforces maximum bytes billed, up to 20 GB.
-- Configure a 90-day deletion lifecycle on this dedicated pilot bucket to bound
-  abandoned attempts. Export anything worth retaining before expiration. Review the
-  policy when this bucket becomes a production checkpoint store.
+- If using a 90-day deletion lifecycle for abandoned pilots, restrict the rule
+  to the **pilots/** object prefix. Keep active **backfills/** and **incremental/**
+  checkpoints outside deletion rules. Export evidence worth retaining before expiry.
 
 This session has no authenticated GCP CLI/connector; cloud setup and credit checks
 require access to the correct GCP project. Do not grant broad roles just to bypass

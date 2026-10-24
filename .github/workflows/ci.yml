@@ -17,7 +17,9 @@ jobs:
       - name: Validate manual data workflow and shell scripts
         uses: docker://rhysd/actionlint:1.7.12
         with:
-          args: -color .github/workflows/rebuild-data.yml
+          args: -color .github/workflows/rebuild-data.yml .github/workflows/ci.yml
+      - name: Validate community publisher shell syntax
+        run: bash -n .github/scripts/publish-community.sh
 
   lint-and-test:
     runs-on: ubuntu-latest
@@ -31,6 +33,15 @@ jobs:
       - run: uv run ruff format --check --diff .
       - run: uv run ruff check .
       - run: uv run pytest -v
+      - name: Reject stale community pointer promotion
+        if: github.event_name == 'pull_request'
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin main
+          if ! git diff --quiet FETCH_HEAD HEAD -- data/community-source.json; then
+            git show FETCH_HEAD:data/community-source.json > /tmp/argo-approved-pointer.json
+            uv run python -m etl.incremental_community --validate-promotion /tmp/argo-approved-pointer.json
+          fi
       - name: Validate recent activity checkpoint
         run: uv run python -m etl.refresh_activity --validate-only
       # The committed historical warehouse makes these checks credential-free.
