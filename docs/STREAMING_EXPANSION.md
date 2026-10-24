@@ -4,9 +4,11 @@
 
 Target: 500 versioned repositories and 90 complete UTC days, followed by scheduled
 ingestion, Kafka/PySpark processing, Airflow orchestration and pipeline observability.
-This change implements the scope registry and isolated, seven-day GCS pilot only.
-No live cloud query, credit verification, bucket creation or dashboard promotion has
-been performed by this change. The production report remains on its approved checkpoint.
+The scope registry and seven-day GCS pilot are implemented.
+The resumable 90-day controller is now implemented; see [90-day runbook](BACKFILL_90_DAYS.md).
+The seven-day pilot succeeded in run 40103121780 with 4,009 events and
+1,677 distinct accounts. The 90-day backfill has not run yet. Credit balance and
+expiry remain unverified. The production report remains on its approved checkpoint.
 
 ## Milestones
 
