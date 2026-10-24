@@ -125,6 +125,20 @@ async function main() {
       await page.getByRole("button",{name:"Predict Churn",exact:true}).click(); assert.equal((await responsePromise).status(),200);
       await page.getByRole("heading",{name:"Projected Survival",exact:true}).waitFor();
     });
+    await check("Export failure shows retryable feedback",async()=>{
+      await page.evaluate(()=>{
+        window.__argoOriginalToDataURL=HTMLCanvasElement.prototype.toDataURL;
+        HTMLCanvasElement.prototype.toDataURL=function(){throw new Error("Simulated export capture failure");};
+      });
+      try {
+        await page.getByRole("button",{name:"Export Report (PDF)",exact:true}).click();
+        const alert=page.getByRole("alert"); await alert.waitFor();
+        assert.match(await alert.innerText(),/report could not be exported/i);
+        assert(await page.getByRole("button",{name:"Export Report (PDF)",exact:true}).isEnabled());
+      } finally {
+        await page.evaluate(()=>{HTMLCanvasElement.prototype.toDataURL=window.__argoOriginalToDataURL;delete window.__argoOriginalToDataURL;});
+      }
+    });
     await check("PDF export downloads a valid document",async()=>{
       const downloadPromise=page.waitForEvent("download",{timeout:120000});
       await page.getByRole("button",{name:"Export Report (PDF)",exact:true}).click();
