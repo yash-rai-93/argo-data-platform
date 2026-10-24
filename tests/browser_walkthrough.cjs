@@ -132,7 +132,7 @@ async function main() {
       });
       try {
         await page.getByRole("button",{name:"Export Report (PDF)",exact:true}).click();
-        const alert=page.getByRole("alert"); await alert.waitFor();
+        const alert=page.getByRole("alert").filter({hasText:"The report could not be exported."}); await alert.waitFor();
         assert.match(await alert.innerText(),/report could not be exported/i);
         assert(await page.getByRole("button",{name:"Export Report (PDF)",exact:true}).isEnabled());
       } finally {
