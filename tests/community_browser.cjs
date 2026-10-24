@@ -216,6 +216,7 @@ async function main() {
     assert(await expanded.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2));
     await expanded.screenshot({path:path.join(output,"05-synthetic-90-day-cohorts.png")});
     await expanded.setViewportSize({width:390,height:844});
+    await expanded.waitForFunction(()=>document.documentElement.scrollWidth<=innerWidth+2);
     assert(await expanded.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2));
     await expanded.screenshot({path:path.join(output,"06-synthetic-90-day-mobile.png")});
 
