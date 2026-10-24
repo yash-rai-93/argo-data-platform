@@ -98,9 +98,9 @@ export async function generateBoardReport(): Promise<void> {
   let pagePixels = Math.max(1, Math.floor(contentHeight / scale));
   let slices = pageSlices(target, capture, pagePixels);
   // Avoid a page containing only a trailing caption. A small width adjustment
-  // is acceptable; never shrink the report by more than four percent.
+  // is acceptable; never shrink the report by more than eight percent.
   if (slices.length > 1 && slices.at(-1)![1] - slices.at(-1)![0] < pagePixels * 0.2) {
-    for (const fit of [0.98, 0.96]) {
+    for (const fit of [0.98, 0.96, 0.94, 0.92]) {
       const candidateScale = fullScale * fit;
       const candidatePixels = Math.max(1, Math.floor(contentHeight / candidateScale));
       const candidate = pageSlices(target, capture, candidatePixels);

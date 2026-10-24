@@ -163,6 +163,7 @@ async function main() {
       });
       const heights=report.pdfDrawCalls.map(call=>call.args[3]);
       assert(heights[0]>=Math.max(...heights)*0.75, "Dense first-page table must not backtrack onto a half-empty page");
+      assert(heights.length===1||heights.at(-1)>=Math.max(...heights)*0.2, "Do not orphan the trailing report caption");
       const info=execFileSync("pdfinfo",[target],{encoding:"utf8"});
       report.pdfPages=Number(info.match(/^Pages:\s+(\d+)/m)[1]);
       assert(report.pdfPages>=2, "Long workspace must paginate at readable width");
