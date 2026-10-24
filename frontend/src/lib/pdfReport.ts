@@ -16,16 +16,23 @@ function pageSlices(
 ): Array<[number, number]> {
   const bounds = target.getBoundingClientRect();
   const pixelScale = canvas.width / bounds.width;
-  const blocks = Array.from(
-    target.querySelectorAll("tr, h2, h3, p, pre, input, button, .recharts-wrapper"),
-  )
-    .map((element) => {
-      const rect = element.getBoundingClientRect();
-      return {
-        start: (rect.top - bounds.top) * pixelScale,
-        end: (rect.bottom - bounds.top) * pixelScale,
-      };
-    })
+  const rectangles = Array.from(
+    target.querySelectorAll("tr, h2, h3, input, button, .recharts-wrapper"),
+    (element) => element.getBoundingClientRect(),
+  );
+  // A paragraph or outreach draft may be tall. Protect its individual lines,
+  // rather than moving the whole paragraph onto a mostly empty next page.
+  for (const element of target.querySelectorAll("p, pre")) {
+    const range = document.createRange();
+    range.selectNodeContents(element);
+    rectangles.push(...Array.from(range.getClientRects()));
+    range.detach();
+  }
+  const blocks = rectangles
+    .map((rect) => ({
+      start: (rect.top - bounds.top) * pixelScale,
+      end: (rect.bottom - bounds.top) * pixelScale,
+    }))
     .filter((block) => block.end > block.start && block.end - block.start <= pagePixels);
 
   const slices: Array<[number, number]> = [];

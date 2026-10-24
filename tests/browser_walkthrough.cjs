@@ -149,8 +149,9 @@ async function main() {
       const info=execFileSync("pdfinfo",[target],{encoding:"utf8"});
       report.pdfPages=Number(info.match(/^Pages:\s+(\d+)/m)[1]);
       assert(report.pdfPages>=2, "Long workspace must paginate at readable width");
-      execFileSync("pdftoppm",["-f","1","-l","2","-r","110","-jpeg","-jpegopt","quality=60",target,path.join(output,"pdf-preview")]);
-      for(const filename of fs.readdirSync(output).filter(name=>name.startsWith("pdf-preview")&&name.endsWith(".jpg"))) {
+      execFileSync("pdftoppm",["-f","1","-l",String(report.pdfPages),"-r","110","-jpeg","-jpegopt","quality=60",target,path.join(output,"pdf-preview")]);
+      const previews=fs.readdirSync(output).filter(name=>name.startsWith("pdf-preview")&&name.endsWith(".jpg")).sort();
+      for(const filename of [...new Set([previews[0],previews[1],previews.at(-1)])]) {
         console.log("ARGO_SCREENSHOT "+filename.replace(".jpg","")+" "+fs.readFileSync(path.join(output,filename)).toString("base64"));
       }
     });
