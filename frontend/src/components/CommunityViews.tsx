@@ -277,11 +277,19 @@ export function CommunityParticipation({ report }: Props) {
                 />
             </Panel>
             <Panel
-                title="Four-week observed return matrix"
+                title={report.weeks.length + "-week observed return matrix"}
                 note="Cohorts use first appearance within this snapshot, after repository/category filters and before the date filter. Cells show accounts and share of the initial cohort. Partial or unavailable weeks remain blank; joining is not lifetime acquisition."
             >
                 <div className="overflow-x-auto">
-                    <table className="w-full min-w-[560px] text-left text-xs">
+                    <table
+                        className="w-full text-left text-xs"
+                        style={{
+                            minWidth: Math.max(
+                                560,
+                                240 + report.weeks.length * 90,
+                            ),
+                        }}
+                    >
                         <caption className="sr-only">
                             Observed weekly cohort returns; unavailable future
                             periods are blank
@@ -488,9 +496,9 @@ export function CommunityTrust({ report }: Props) {
             <p className="rounded-xl border border-sky-400/20 bg-sky-400/5 p-4 text-sm leading-relaxed text-slate-300">
                 This page describes the{" "}
                 <strong>whole approved checkpoint</strong>. Activity filters do
-                not change source coverage or validation evidence. Only the
-                latest recorded refresh is available; no run-history series is
-                inferred.
+                not change source coverage or validation evidence. The recorded
+                snapshot may combine validated backfill batches; no run-history
+                series is inferred.
             </p>
             <div className="grid gap-4 sm:grid-cols-3">
                 <Metric
@@ -513,7 +521,13 @@ export function CommunityTrust({ report }: Props) {
                 <Metric
                     label="Billing cap used"
                     value={percent(utilization)}
-                    detail="Billed query bytes divided by the configured cap."
+                    detail={
+                        bytes.kind === "backfill"
+                            ? "Combined billed bytes across " +
+                              bytes.batches +
+                              " batches against the total backfill budget."
+                            : "Billed query bytes divided by the configured cap."
+                    }
                 />
             </div>
             <Panel
@@ -679,7 +693,10 @@ export function CommunityTrust({ report }: Props) {
                         </a>
                     )}
                     <a
-                        href="https://github.com/yash-rai-93/argo-data-platform/blob/main/data/recent-activity.json"
+                        href={
+                            s.summaryUrl ??
+                            "https://github.com/yash-rai-93/argo-data-platform/blob/main/data/recent-activity.json"
+                        }
                         target="_blank"
                         rel="noreferrer"
                         className="underline"

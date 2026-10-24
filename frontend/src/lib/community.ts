@@ -13,8 +13,10 @@ export type Checkpoint = {
     through_exclusive: string;
     covered_days: string[];
     events: ActivityEvent[];
+    repositories?: string[];
 };
 export type Snapshot = {
+    summary_url?: string;
     status: string;
     coverage_start: string;
     through_exclusive: string;
@@ -26,6 +28,8 @@ export type Snapshot = {
     pr_issue_events: number;
     daily: { date: string; events: number; contributors: number }[];
     query: {
+        kind?: string;
+        batches?: number;
         run_id: string;
         bytes_processed: number;
         bytes_billed: number;
@@ -130,6 +134,14 @@ export function validateCheckpoint(
             throw new Error("Invalid or duplicate source event.");
         ids.add(e.event_id);
     }
+    if (
+        state.repositories &&
+        (new Set(state.repositories).size !== state.repositories.length ||
+            state.events.some(
+                (e) => !state.repositories!.includes(e.repo_name),
+            ))
+    )
+        throw new Error("Repository registry does not match events.");
     const actual = counts(state.events);
     if (
         actual.events !== snapshot.event_count ||
@@ -183,7 +195,12 @@ export function resolveFilters(
         throw new FilterError(
             "Choose valid dates within the approved coverage.",
         );
-    if (repository && !state.events.some((e) => e.repo_name === repository))
+    if (
+        repository &&
+        !(state.repositories ?? state.events.map((e) => e.repo_name)).includes(
+            repository,
+        )
+    )
         throw new FilterError("Unknown repository.");
     if (category && !state.events.some((e) => e.event_category === category))
         throw new FilterError("Unknown event category.");
@@ -398,7 +415,9 @@ export function buildCommunityReport(
         categories: ranking(selected, (e) => e.event_category),
         options: {
             repositories: [
-                ...new Set(state.events.map((e) => e.repo_name)),
+                ...new Set(
+                    state.repositories ?? state.events.map((e) => e.repo_name),
+                ),
             ].sort(),
             categories: [
                 ...new Set(state.events.map((e) => e.event_category)),
@@ -414,6 +433,7 @@ export function buildCommunityReport(
             stateSha256: snapshot.state_sha256,
             quality: snapshot.quality,
             query: snapshot.query,
+            summaryUrl: snapshot.summary_url,
             coverage: state.covered_days.map((date) => ({
                 date,
                 events:
