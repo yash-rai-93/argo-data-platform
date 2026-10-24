@@ -161,6 +161,8 @@ async function main() {
         CanvasRenderingContext2D.prototype.drawImage=window.__argoOriginalDrawImage;
         return window.__argoDrawCalls;
       });
+      const heights=report.pdfDrawCalls.map(call=>call.args[3]);
+      assert(heights[0]>=Math.max(...heights)*0.75, "Dense first-page table must not backtrack onto a half-empty page");
       const info=execFileSync("pdfinfo",[target],{encoding:"utf8"});
       report.pdfPages=Number(info.match(/^Pages:\s+(\d+)/m)[1]);
       assert(report.pdfPages>=2, "Long workspace must paginate at readable width");

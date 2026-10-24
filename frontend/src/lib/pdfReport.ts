@@ -73,6 +73,11 @@ export async function generateBoardReport(): Promise<void> {
     backgroundColor: BACKGROUND,
     pixelRatio: 1.5,
     cacheBust: true,
+    filter: (node) => {
+      if (!(node instanceof Element)) return true;
+      const closed = node.parentElement?.closest("details:not([open])");
+      return !closed || Boolean(node.closest("summary"));
+    },
   });
   if (!capture.width || !capture.height) {
     throw new Error("The report workspace is empty.");
