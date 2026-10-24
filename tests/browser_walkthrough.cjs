@@ -140,12 +140,27 @@ async function main() {
       }
     });
     await check("PDF export downloads a valid document",async()=>{
+      report.pdfDom=await page.locator("#argo-workspace").evaluate(el=>({width:el.getBoundingClientRect().width,height:el.getBoundingClientRect().height,scrollHeight:el.scrollHeight}));
+      await page.evaluate(()=>{
+        window.__argoDrawCalls=[];
+        window.__argoOriginalDrawImage=CanvasRenderingContext2D.prototype.drawImage;
+        CanvasRenderingContext2D.prototype.drawImage=function(...args){
+          if(args[0] instanceof HTMLCanvasElement && args.length===9){
+            window.__argoDrawCalls.push({width:args[0].width,height:args[0].height,args:args.slice(1)});
+          }
+          return window.__argoOriginalDrawImage.apply(this,args);
+        };
+      });
       const downloadPromise=page.waitForEvent("download",{timeout:120000});
       await page.getByRole("button",{name:"Export Report (PDF)",exact:true}).click();
       const download=await downloadPromise; const target=path.join(output,"retention-report.pdf"); await download.saveAs(target);
       const bytes=fs.readFileSync(target); assert.equal(bytes.subarray(0,5).toString(),"%PDF-");
       assert(bytes.length>1000 && bytes.length<5*1024*1024, "PDF must be below 5 MiB");
       report.pdfBytes=bytes.length;
+      report.pdfDrawCalls=await page.evaluate(()=>{
+        CanvasRenderingContext2D.prototype.drawImage=window.__argoOriginalDrawImage;
+        return window.__argoDrawCalls;
+      });
       const info=execFileSync("pdfinfo",[target],{encoding:"utf8"});
       report.pdfPages=Number(info.match(/^Pages:\s+(\d+)/m)[1]);
       assert(report.pdfPages>=2, "Long workspace must paginate at readable width");
