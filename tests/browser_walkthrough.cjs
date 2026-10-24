@@ -1,12 +1,13 @@
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { execFileSync } = require("node:child_process");
 const { chromium } = require("playwright");
 const frontend = process.env.FRONTEND_URL;
 const api = process.env.API_URL;
 const output = process.env.ARGO_BROWSER_OUTPUT || "/tmp/argo-browser-results";
 fs.mkdirSync(output, { recursive: true });
-const report = { checks: [], warnings: [], exceptions: [], apiErrors: [] };
+const report = { target: frontend, checks: [], warnings: [], exceptions: [], apiErrors: [] };
 let browser, page;
 async function check(name, fn) {
   try { await fn(); report.checks.push({name, status:"pass"}); console.log("PASS " + name); return true; }
@@ -128,7 +129,16 @@ async function main() {
       const downloadPromise=page.waitForEvent("download",{timeout:120000});
       await page.getByRole("button",{name:"Export Report (PDF)",exact:true}).click();
       const download=await downloadPromise; const target=path.join(output,"retention-report.pdf"); await download.saveAs(target);
-      const bytes=fs.readFileSync(target); assert.equal(bytes.subarray(0,5).toString(),"%PDF-"); assert(bytes.length>1000); report.pdfBytes=bytes.length;
+      const bytes=fs.readFileSync(target); assert.equal(bytes.subarray(0,5).toString(),"%PDF-");
+      assert(bytes.length>1000 && bytes.length<5*1024*1024, "PDF must be below 5 MiB");
+      report.pdfBytes=bytes.length;
+      const info=execFileSync("pdfinfo",[target],{encoding:"utf8"});
+      report.pdfPages=Number(info.match(/^Pages:\s+(\d+)/m)[1]);
+      assert(report.pdfPages>=2, "Long workspace must paginate at readable width");
+      execFileSync("pdftoppm",["-f","1","-l","2","-r","110","-jpeg","-jpegopt","quality=60",target,path.join(output,"pdf-preview")]);
+      for(const filename of fs.readdirSync(output).filter(name=>name.startsWith("pdf-preview")&&name.endsWith(".jpg"))) {
+        console.log("ARGO_SCREENSHOT "+filename.replace(".jpg","")+" "+fs.readFileSync(path.join(output,filename)).toString("base64"));
+      }
     });
   }
   const mobileCtx=await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:1,isMobile:true,hasTouch:true,locale:"en-US",reducedMotion:"reduce"});
@@ -139,7 +149,8 @@ async function main() {
     await panel.getByText(expected.event_count.toLocaleString("en-US"),{exact:true}).waitFor(); await overflow(mobile,"Mobile");
     await mobile.evaluate(()=>scrollTo(0,0)); await shot(mobile,"mobile-overview");
     const toggle=panel.getByText("Repository drivers",{exact:true}); await toggle.tap();
-    await toggle.locator("xpath=ancestor::details[1]").getByRole("table").waitFor(); await toggle.tap();
+    await toggle.locator("xpath=ancestor::details[1]").getByRole("table").waitFor();
+    await overflow(mobile,"Mobile expanded repository drivers"); await toggle.tap();
     await panel.getByRole("heading",{name:"Data quality & freshness",exact:true}).evaluate(el=>el.scrollIntoView({block:"start"}));
     await shot(mobile,"mobile-quality");
     if(!(await mobile.getByRole("button",{name:"ML Engine",exact:true}).isVisible()))

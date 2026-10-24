@@ -206,7 +206,28 @@ jobs:
         run: |
           npm install --prefix "$RUNNER_TEMP/argo-browser" --no-save --no-audit --no-fund playwright@1.62.1
           "$RUNNER_TEMP/argo-browser/node_modules/.bin/playwright" install --with-deps chromium
-      - name: Walk through the deployed desktop and mobile interface
+          sudo apt-get install -y poppler-utils
+      - name: Build the candidate frontend for PR browser verification
+        if: github.event_name == 'pull_request'
+        working-directory: frontend
+        env:
+          NEXT_PUBLIC_API_URL: ${{ env.API_URL }}
+        run: |
+          npm ci
+          npm run build
+      - name: Start the candidate frontend
+        if: github.event_name == 'pull_request'
+        run: |
+          cd frontend
+          npm run start -- --hostname 127.0.0.1 --port 3000 > "$RUNNER_TEMP/argo-frontend.log" 2>&1 &
+          ready=false
+          for _ in $(seq 1 60); do
+            if curl -fs http://127.0.0.1:3000 > /dev/null; then ready=true; break; fi
+            sleep 1
+          done
+          if [ "$ready" != true ]; then cat "$RUNNER_TEMP/argo-frontend.log"; exit 1; fi
+          echo "FRONTEND_URL=http://127.0.0.1:3000" >> "$GITHUB_ENV"
+      - name: Walk through the desktop and mobile interface
         run: |
           NODE_PATH="$RUNNER_TEMP/argo-browser/node_modules" \
           ARGO_BROWSER_OUTPUT="$RUNNER_TEMP/argo-browser-results" \
