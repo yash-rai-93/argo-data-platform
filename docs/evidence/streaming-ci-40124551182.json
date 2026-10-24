@@ -1,0 +1,121 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "mode": "synthetic_historical_replay",
+  "run_id": "40124551182",
+  "source_commit": "cec7f542ccf8833c731ddc4a505c7f2aa14cca6d",
+  "environment": {
+    "python": "3.12.15",
+    "platform": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
+    "logical_cpus": 4,
+    "spark": "3.5.6",
+    "kafka": "4.2.1",
+    "spark_master": "local[2]",
+    "topic_partitions": 2,
+    "broker_count": 1,
+    "sink": "single-driver SQLite"
+  },
+  "operations": [
+    {
+      "name": "injected_failure_after_sink_commit",
+      "outcome": "failed",
+      "seconds": 2.073678
+    },
+    {
+      "name": "recovery_from_checkpoint",
+      "outcome": "pass",
+      "seconds": 1.334562
+    },
+    {
+      "name": "restart_without_input",
+      "outcome": "pass",
+      "seconds": 0.069408
+    },
+    {
+      "name": "duplicate_replay",
+      "outcome": "pass",
+      "seconds": 1.488979
+    },
+    {
+      "name": "benchmark-0",
+      "outcome": "pass",
+      "seconds": 1.415142
+    },
+    {
+      "name": "benchmark-1",
+      "outcome": "pass",
+      "seconds": 1.3451
+    },
+    {
+      "name": "benchmark-2",
+      "outcome": "pass",
+      "seconds": 1.56023
+    }
+  ],
+  "trials": [
+    {
+      "trial": 1,
+      "records": 1000,
+      "key_value_bytes": 543580,
+      "producer_seconds": 0.211771,
+      "consumer_seconds": 1.415142,
+      "records_per_second": 706.643,
+      "publication_to_last_sink_commit_seconds": 1.603525,
+      "spark_input_rows": 1000
+    },
+    {
+      "trial": 2,
+      "records": 1000,
+      "key_value_bytes": 543580,
+      "producer_seconds": 0.199757,
+      "consumer_seconds": 1.3451,
+      "records_per_second": 743.439,
+      "publication_to_last_sink_commit_seconds": 1.518478,
+      "spark_input_rows": 1000
+    },
+    {
+      "trial": 3,
+      "records": 1000,
+      "key_value_bytes": 543580,
+      "producer_seconds": 0.227216,
+      "consumer_seconds": 1.56023,
+      "records_per_second": 640.931,
+      "publication_to_last_sink_commit_seconds": 1.740679,
+      "spark_input_rows": 1000
+    }
+  ],
+  "cost": {
+    "gcp_resources_used_by_test": false,
+    "gcp_actual_cost_inr": null,
+    "github_actions_billed_cost": null,
+    "note": "No GCP resources used; CI account billing and deployment costs unverified."
+  },
+  "limits": [
+    "Three small synthetic trials on a shared CI runner, after warmup.",
+    "Consume rate includes query startup; excludes producer and JVM startup.",
+    "Replay publication-to-last-commit delay includes intentional producer/broker waiting.",
+    "Historical event age is not live source lag; no live source lag measured.",
+    "Injected task failure is not VM crash, broker failover, or high-availability evidence."
+  ],
+  "spark_initialization_seconds": 12.448548,
+  "recovery_checks": {
+    "injected_failures": 1,
+    "recovered_unique_events": 3,
+    "quarantined_records": 4,
+    "consumed_messages": 12,
+    "checkpoint_restart": "pass",
+    "duplicate_replay": "pass",
+    "late_historical_event": "retained"
+  },
+  "throughput_records_per_second": {
+    "minimum": 640.931,
+    "median": 706.643,
+    "maximum": 743.439
+  },
+  "final_counts": {
+    "events": 3003,
+    "quarantine": 4,
+    "messages": 3012
+  },
+  "total_seconds": 25.156151
+}

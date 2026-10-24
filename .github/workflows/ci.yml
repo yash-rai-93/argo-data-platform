@@ -148,6 +148,14 @@ jobs:
           docker compose -f streaming/compose.yml exec -T kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --if-not-exists --topic argo.github.replay.v1 --partitions 2 --replication-factor 1 --config retention.ms=604800000
       - name: Verify actual Kafka/Spark crash recovery and duplicate replay
         run: uv run --no-project --python 3.12 --with pyspark==3.5.6 python tests/streaming_integration.py
+      - name: Retain measured replay evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: streaming-operational-evidence
+          path: data/generated/streaming/operational-evidence.json
+          if-no-files-found: ignore
+          retention-days: 90
       - name: Kafka logs
         if: failure()
         run: docker compose -f streaming/compose.yml logs --tail=100
