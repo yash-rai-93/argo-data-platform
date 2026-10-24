@@ -14,6 +14,7 @@ import {
   YAxis,
 } from "recharts";
 
+import { trackPrediction } from "@/lib/analytics";
 import ShapExplanation from "@/components/ShapExplanation";
 import {
   fetchThresholdHoldout,
@@ -297,12 +298,13 @@ export default function ChurnWidget() {
     [holdout, threshold],
   );
 
-  async function runPrediction(features: ChurnFeatures): Promise<void> {
+  async function runPrediction(features: ChurnFeatures, source: "manual" | "preset" = "manual"): Promise<void> {
     setError("");
     setResult(null);
     setLoading(true);
     try {
       setResult(await predictChurn(features));
+      void trackPrediction(source);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Prediction failed");
     } finally {
@@ -312,7 +314,7 @@ export default function ChurnWidget() {
 
   function loadScenario(features: ChurnFeatures): void {
     setValues(toFormState(features));
-    void runPrediction(features);
+    void runPrediction(features, "preset");
   }
 
   function handleSubmit(event: FormEvent): void {

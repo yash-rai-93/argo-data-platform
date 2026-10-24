@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Fira_Code, Inter } from "next/font/google";
 import "./globals.css";
+import AnalyticsConsent from "@/components/AnalyticsConsent";
 
 const inter = Inter({
   variable: "--font-sans",
@@ -28,6 +29,7 @@ export default function RootLayout({
         className={`${inter.variable} ${firaCode.variable} flex min-h-full flex-col`}
       >
         {children}
+        <AnalyticsConsent />
       </body>
     </html>
   );
