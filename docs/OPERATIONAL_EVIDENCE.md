@@ -23,6 +23,42 @@ versions, local Spark threads, broker/partition count and the single-driver sink
 Each trial records bytes, producer/consumer durations, rate and Spark input rows.
 The benchmark asserts exactly 1,000 additional messages and unique events per trial.
 
+## Recorded sandbox result
+
+Evidence: [CI run 40124551182](https://github.com/yash-rai-93/argo-data-platform/actions/runs/40124551182),
+with [the complete measured JSON](evidence/streaming-ci-40124551182.json).
+The run passed on October 25, 2026 IST (October 24 UTC), using Python 3.12.15,
+PySpark 3.5.6, Kafka 4.2.1, two local Spark threads, two Kafka partitions, one
+broker and a SQLite driver sink. The shared CI host reported four logical CPUs.
+
+| Trial | Unique input records | Consumer duration | Observed records/second | Publication to last sink commit |
+| --- | ---: | ---: | ---: | ---: |
+| 1 | 1000 | 1.415 s | 706.643 | 1.604 s |
+| 2 | 1000 | 1.345 s | 743.439 | 1.518 s |
+| 3 | 1000 | 1.560 s | 640.931 | 1.741 s |
+
+Median observed rate: **706.643 records/second**, after warmup. Each trial carried
+543,580 key/value bytes; producer durations were 0.200-0.227 seconds.
+Consumer durations include available-now query startup and exclude producer/JVM startup.
+Publication-to-commit delay includes the producer and deliberate pre-consumer waiting.
+
+The controlled failure occurred after the sink commit. Checkpoint restart completed
+in **1.334562 seconds**. Restart without input took 0.069408 seconds and added no rows.
+Duplicate replay preserved three unique fixture events; malformed input was quarantined.
+After all trials, reconciliation was **3,003 unique events, 4 quarantine records and
+3,012 Kafka records**. These counts include the recovery fixtures and synthetic trials.
+
+Spark initialization took 12.449 seconds; total harness time was 25.156 seconds.
+These values are observations of this CI run, not a capacity limit or production SLA.
+
+### Existing query-byte evidence
+
+The checksum-verified [published backfill summary](https://github.com/yash-rai-93/argo-data-platform/releases/download/community-data-40112298324-1/recent-activity.json)
+records **15,537,799,168 billed BigQuery bytes** against a **20,000,000,000-byte cap**
+for the 13-batch July 25-October 22 snapshot. Processed bytes were 15,532,379,573.
+This is query usage evidence, not an INR cost calculation or Cloud Billing receipt.
+The replay benchmark used no GCP resources; currency costs remain unverified.
+
 ## What this evidence does not establish
 
 Three small trials on a shared CI runner do not establish peak capacity, production
