@@ -22,6 +22,48 @@ def digest_file(path):
         return hashlib.file_digest(source, "sha256").hexdigest()
 
 
+def read_batch(store, completed, scope, scope_hash):
+    """Verify a landed batch against its checkpoint, digest, scope, and metrics."""
+    names = {r["repository_id"]: r["name"] for r in scope["repositories"]}
+    manifest_name = completed["manifest"]
+    pattern = re.escape(store.prefix) + r"/attempts/[a-f0-9]{32}/manifest.json"
+    if not re.fullmatch(pattern, manifest_name):
+        raise ValueError("Batch manifest escaped the approved backfill.")
+    manifest, _ = store.read_json(manifest_name)
+    pending = {
+        "window": completed["window"],
+        "job_id": completed["job_id"],
+        "cap": completed["cap"],
+    }
+    backfill.check_manifest(manifest, pending, scope_hash)
+    if manifest["bytes_billed"] != completed["bytes_billed"]:
+        raise ValueError("Manifest billing differs from checkpoint.")
+    start = date.fromisoformat(completed["window"]["start"])
+    end = date.fromisoformat(completed["window"]["end_exclusive"])
+    event_name = manifest_name.removesuffix("manifest.json") + "events.jsonl.gz"
+    if manifest["events_uri"] != f"gs://{store.bucket.name}/{event_name}":
+        raise ValueError("Event object escaped its manifest.")
+    with tempfile.TemporaryDirectory() as temporary:
+        packed = Path(temporary) / "events.gz"
+        store.bucket.blob(event_name).download_to_filename(str(packed))
+        if digest_file(packed) != manifest["quality"]["sha256"]:
+            raise ValueError("Batch checksum mismatch.")
+        with gzip.open(packed, "rb") as source:
+            raw = source.read(refresh.MAX_STATE_BYTES + 1)
+        if len(raw) > refresh.MAX_STATE_BYTES:
+            raise ValueError("Batch exceeds supported size.")
+        rows = [
+            pilot.validate_row(json.loads(line), names, start, end) for line in raw.splitlines()
+        ]
+        _, recomputed = pilot.materialize(rows, scope, start, end, Path(temporary))
+        for key in ("event_count", "distinct_accounts", "queried_days", "repositories"):
+            if recomputed[key] != manifest["quality"][key]:
+                raise ValueError("Batch metrics do not reconcile: " + key)
+        if recomputed["event_count"] != completed["event_count"]:
+            raise ValueError("Checkpoint event count differs.")
+    return rows, manifest
+
+
 def assemble(store, checkpoint, scope, scope_hash, output):
     config = checkpoint["config"]
     backfill.validate_state(checkpoint, config, checkpoint["total_cap"])
@@ -33,49 +75,14 @@ def assemble(store, checkpoint, scope, scope_hash, output):
     by_id, processed, billed, incoming = {}, 0, 0, 0
     names = {r["repository_id"]: r["name"] for r in scope["repositories"]}
     for completed in checkpoint["completed"]:
-        manifest_name = completed["manifest"]
-        pattern = re.escape(store.prefix) + r"/attempts/[a-f0-9]{32}/manifest.json"
-        if not re.fullmatch(pattern, manifest_name):
-            raise ValueError("Batch manifest escaped the approved backfill.")
-        manifest, _ = store.read_json(manifest_name)
-        pending = {
-            "window": completed["window"],
-            "job_id": completed["job_id"],
-            "cap": completed["cap"],
-        }
-        backfill.check_manifest(manifest, pending, scope_hash)
-        if manifest["bytes_billed"] != completed["bytes_billed"]:
-            raise ValueError("Manifest billing differs from checkpoint.")
-        start = date.fromisoformat(completed["window"]["start"])
-        end = date.fromisoformat(completed["window"]["end_exclusive"])
-        event_name = manifest_name.removesuffix("manifest.json") + "events.jsonl.gz"
-        if manifest["events_uri"] != f"gs://{store.bucket.name}/{event_name}":
-            raise ValueError("Event object escaped its manifest.")
-        with tempfile.TemporaryDirectory() as temporary:
-            packed = Path(temporary) / "events.gz"
-            store.bucket.blob(event_name).download_to_filename(str(packed))
-            if digest_file(packed) != manifest["quality"]["sha256"]:
-                raise ValueError("Batch checksum mismatch.")
-            with gzip.open(packed, "rb") as source:
-                raw = source.read(refresh.MAX_STATE_BYTES + 1)
-            if len(raw) > refresh.MAX_STATE_BYTES:
-                raise ValueError("Batch exceeds supported size.")
-            rows = [
-                pilot.validate_row(json.loads(line), names, start, end) for line in raw.splitlines()
-            ]
-            _, recomputed = pilot.materialize(rows, scope, start, end, Path(temporary))
-            for key in ("event_count", "distinct_accounts", "queried_days", "repositories"):
-                if recomputed[key] != manifest["quality"][key]:
-                    raise ValueError("Batch metrics do not reconcile: " + key)
-            if recomputed["event_count"] != completed["event_count"]:
-                raise ValueError("Checkpoint event count differs.")
-            incoming += len(rows)
-            for row in rows:
-                event = refresh.normalize_event(row)
-                old = by_id.get(event["event_id"])
-                if old and old != event:
-                    raise ValueError("Conflicting event ID across batches.")
-                by_id[event["event_id"]] = event
+        rows, manifest = read_batch(store, completed, scope, scope_hash)
+        incoming += len(rows)
+        for row in rows:
+            event = refresh.normalize_event(row)
+            old = by_id.get(event["event_id"])
+            if old and old != event:
+                raise ValueError("Conflicting event ID across batches.")
+            by_id[event["event_id"]] = event
         processed += manifest["bytes_processed"]
         billed += manifest["bytes_billed"]
     first, last = config["batches"][0]["start"], config["batches"][-1]["end_exclusive"]
