@@ -276,6 +276,7 @@ export default function RecentActivity() {
           </p>
         </>
       )}
+      <a href="/community" className="mt-4 inline-flex rounded-lg border border-red-400/40 bg-red-500/10 px-4 py-2 text-sm font-medium text-red-200 hover:bg-red-500/20">Explore the full community report →</a>
       <p className="mt-3 border-t border-white/10 pt-3 text-xs text-slate-500">
         The analysis below, model benchmarks, and retention queue use the fixed 2023 study.
       </p>
