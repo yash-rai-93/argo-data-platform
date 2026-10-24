@@ -197,21 +197,10 @@ try:
             "maximum": max(rates),
         }
         evidence["status"] = "pass"
-        print(
-            json.dumps(
-                {
-                    "mode": "synthetic_historical_replay",
-                    "events": 3,
-                    "quarantined_records": 4,
-                    "messages": 12,
-                    "crash_recovery": "pass",
-                    "checkpoint_restart": "pass",
-                    "duplicate_replay": "pass",
-                    "late_historical_event": "retained",
-                }
-            ),
-            flush=True,
+        evidence["final_counts"] = dict(
+            zip(("events", "quarantine", "messages"), counts(), strict=True)
         )
+
 finally:
     evidence["total_seconds"] = round(time.perf_counter() - began, 6)
     output = Path("data/generated/streaming/operational-evidence.json")
