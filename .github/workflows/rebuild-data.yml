@@ -6,7 +6,7 @@ on:
       operation:
         description: Estimate or apply a recent refresh, or rebuild historical training artifacts
         type: choice
-        options: [incremental-dry-run, incremental-refresh, backfill-dry-run, backfill-refresh, pilot-dry-run, pilot-refresh, dry-run, rebuild]
+        options: [incremental-dry-run, incremental-refresh, backfill-dry-run, backfill-refresh, pilot-dry-run, pilot-refresh, backfill90-dry-run, backfill90-refresh, dry-run, rebuild]
         default: incremental-dry-run
       maximum_bytes_billed:
         description: "Required for apply/rebuild: positive bytes cap; recent refresh maximum 20000000000"
@@ -17,6 +17,19 @@ on:
         description: "Recent/backfill end date, exclusive UTC (YYYY-MM-DD); copy from estimate"
         type: string
         required: false
+
+      total_max_bytes_billed:
+        description: "90-day backfill cumulative query budget in bytes; pinned at first apply"
+        type: string
+        default: "10000000000"
+      max_batches:
+        description: "90-day backfill batches this invocation (1..13); rerun to resume"
+        type: string
+        default: "3"
+      retry_failed:
+        description: "Explicitly replace a failed BigQuery job; old reservation remains charged"
+        type: boolean
+        default: false
 
 # Queue maintenance runs; never cancel a writer halfway through a snapshot.
 concurrency:
@@ -308,5 +321,78 @@ jobs:
         with:
           name: argo-pilot-${{ github.run_id }}
           path: data/generated/pilot-report.json
+          if-no-files-found: error
+          retention-days: 14
+
+  backfill90-activity:
+    if: github.ref == 'refs/heads/main' && startsWith(inputs.operation, 'backfill90-')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      GOOGLE_CLOUD_PROJECT: ${{ vars.GCP_PROJECT_ID }}
+      GCS_BUCKET: ${{ vars.GCP_DATA_BUCKET }}
+      CAP: ${{ inputs.maximum_bytes_billed }}
+      END_DATE: ${{ inputs.refresh_end }}
+      TOTAL_CAP: ${{ inputs.total_max_bytes_billed }}
+      BATCH_LIMIT: ${{ inputs.max_batches }}
+      RETRY_FAILED: ${{ inputs.retry_failed }}
+      OPERATION: ${{ inputs.operation }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check pilot configuration
+        env:
+          WIF_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          ETL_SERVICE_ACCOUNT: ${{ vars.GCP_ETL_SERVICE_ACCOUNT }}
+        run: |
+          set -euo pipefail
+          test -n "$GOOGLE_CLOUD_PROJECT"
+          test -n "$WIF_PROVIDER"
+          test -n "$ETL_SERVICE_ACCOUNT"
+          test -n "$GCS_BUCKET"
+          test -n "$TOTAL_CAP"
+          test -n "$END_DATE" || { echo "Set an explicit refresh_end copied between estimate and apply."; exit 1; }
+          if [ "$OPERATION" = backfill90-refresh ]; then
+            test -n "$GCS_BUCKET" || { echo "Set GCP_DATA_BUCKET to an existing private US bucket."; exit 1; }
+            if [[ "$CAP" =~ ^[1-9][0-9]{0,10}$ ]] && (( CAP <= 20000000000 )); then
+              echo "Explicit per-query cap: $CAP bytes"
+            else
+              echo "Set a positive maximum_bytes_billed of at most 20000000000."; exit 1
+            fi
+          fi
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv python install 3.12
+      - run: uv sync --frozen
+      - uses: google-github-actions/auth@v3
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_ETL_SERVICE_ACCOUNT }}
+      - name: Estimate or land the resumable 90-day backfill
+        run: |
+          set -euo pipefail
+          args=()
+          if [ "$OPERATION" = backfill90-refresh ]; then
+            args+=(--apply --maximum-bytes-billed "$CAP")
+          fi
+          if [ "$RETRY_FAILED" = true ]; then args+=(--retry-failed); fi
+          uv run python -m etl.backfill_activity --end-date "$END_DATE" --total-max-bytes-billed "$TOTAL_CAP" --max-batches "$BATCH_LIMIT" --report data/generated/backfill-report.json "${args[@]}"
+          {
+            echo '### 90-day backfill'
+            echo
+            echo 'This run does not publish or advance the production dashboard.'
+            echo
+            echo '```json'
+            cat data/generated/backfill-report.json
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: argo-backfill90-${{ github.run_id }}
+          path: data/generated/backfill-report.json
           if-no-files-found: error
           retention-days: 14
