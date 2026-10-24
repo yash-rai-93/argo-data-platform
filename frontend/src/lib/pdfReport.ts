@@ -93,8 +93,27 @@ export async function generateBoardReport(): Promise<void> {
   const pageHeight = doc.internal.pageSize.getHeight();
   const contentWidth = pageWidth - 2 * MARGIN;
   const contentHeight = pageHeight - 2 * MARGIN - FOOTER;
-  const scale = contentWidth / capture.width;
-  const slices = pageSlices(target, capture, Math.max(1, Math.floor(contentHeight / scale)));
+  const fullScale = contentWidth / capture.width;
+  let scale = fullScale;
+  let pagePixels = Math.max(1, Math.floor(contentHeight / scale));
+  let slices = pageSlices(target, capture, pagePixels);
+  // Avoid a page containing only a trailing caption. A small width adjustment
+  // is acceptable; never shrink the report by more than four percent.
+  if (slices.length > 1 && slices.at(-1)![1] - slices.at(-1)![0] < pagePixels * 0.2) {
+    for (const fit of [0.98, 0.96]) {
+      const candidateScale = fullScale * fit;
+      const candidatePixels = Math.max(1, Math.floor(contentHeight / candidateScale));
+      const candidate = pageSlices(target, capture, candidatePixels);
+      if (candidate.length < slices.length) {
+        scale = candidateScale;
+        pagePixels = candidatePixels;
+        slices = candidate;
+        break;
+      }
+    }
+  }
+  const renderWidth = capture.width * scale;
+  const offsetX = (pageWidth - renderWidth) / 2;
 
   slices.forEach(([start, end], index) => {
     if (index > 0) doc.addPage();
@@ -110,9 +129,9 @@ export async function generateBoardReport(): Promise<void> {
     doc.addImage(
       page.toDataURL("image/jpeg", 0.88),
       "JPEG",
+      offsetX,
       MARGIN,
-      MARGIN,
-      contentWidth,
+      renderWidth,
       page.height * scale,
       undefined,
       "FAST",
