@@ -6,7 +6,7 @@ on:
       operation:
         description: Estimate or apply a recent refresh, or rebuild historical training artifacts
         type: choice
-        options: [incremental-dry-run, incremental-refresh, backfill-dry-run, backfill-refresh, pilot-dry-run, pilot-refresh, backfill90-dry-run, backfill90-refresh, dry-run, rebuild]
+        options: [incremental-dry-run, incremental-refresh, backfill-dry-run, backfill-refresh, pilot-dry-run, pilot-refresh, backfill90-dry-run, backfill90-refresh, community-publish, dry-run, rebuild]
         default: incremental-dry-run
       maximum_bytes_billed:
         description: "Required for apply/rebuild: positive bytes cap; recent refresh maximum 20000000000"
@@ -394,5 +394,71 @@ jobs:
         with:
           name: argo-backfill90-${{ github.run_id }}
           path: data/generated/backfill-report.json
+          if-no-files-found: error
+          retention-days: 14
+
+  publish-community:
+    if: github.ref == 'refs/heads/main' && inputs.operation == 'community-publish'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      id-token: write
+    env:
+      GOOGLE_CLOUD_PROJECT: ${{ vars.GCP_PROJECT_ID }}
+      GCS_BUCKET: ${{ vars.GCP_DATA_BUCKET }}
+      END_DATE: ${{ inputs.refresh_end }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: astral-sh/setup-uv@v5
+      - run: uv python install 3.12
+      - run: uv sync --frozen
+      - uses: google-github-actions/auth@v3
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_ETL_SERVICE_ACCOUNT }}
+      - name: Verify all approved batches and build the report snapshot
+        run: uv run python -m etl.publish_community --end-date "$END_DATE"
+      - name: Publish versioned report assets and prepare pointer review branch
+        run: |
+          set -euo pipefail
+          tag="community-data-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          branch="data/community-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          export COMMUNITY_TAG="$tag"
+          gh release create "$tag" --target "$GITHUB_SHA" --prerelease --title "Community data $tag" --notes "Verified public GitHub activity snapshot. Private GCS originals are unchanged. Publication audit attached." data/generated/community/recent-activity.json data/generated/community/recent-activity-state.json.gz data/generated/community/publication-audit.json
+          uv run python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          audit = json.loads(Path("data/generated/community/publication-audit.json").read_text())
+          base = "https://github.com/yash-rai-93/argo-data-platform/releases/download/" + os.environ["COMMUNITY_TAG"]
+          pointer = {
+              "schema_version": 1,
+              "summary_url": base + "/recent-activity.json",
+              "state_url": base + "/recent-activity-state.json.gz",
+              "summary_sha256": audit["summary_sha256"],
+          }
+          Path("data/community-source.json").write_text(json.dumps(pointer, indent=2) + "\n")
+          PY
+          git switch -c "$branch"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/community-source.json
+          git commit -m "data: publish verified 90-day community snapshot"
+          git push origin "$branch"
+          {
+            echo '### Verified community snapshot ready'
+            echo 'Open this comparison, create a PR, and merge after CI to switch the live report:'
+            echo "https://github.com/$GITHUB_REPOSITORY/compare/main...$branch?expand=1"
+            cat data/generated/community/publication-audit.json
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: community-publication-${{ github.run_id }}
+          path: data/generated/community/publication-audit.json
           if-no-files-found: error
           retention-days: 14

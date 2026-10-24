@@ -4,6 +4,7 @@ import fs from "node:fs";
 import vm from "node:vm";
 import { gunzipSync } from "node:zlib";
 import { createRequire } from "node:module";
+import { createHash } from "node:crypto";
 import ts from "typescript";
 
 const stateBytes = fs.readFileSync("../data/recent-activity-state.json.gz");
@@ -190,7 +191,7 @@ test("duplicate IDs, missing coverage and mismatched summaries fail verification
         /totals/,
     );
 });
-function routeFixture(corrupt = false) {
+function routeFixture(corrupt = false, pointer = null) {
     let calls = 0;
     const require = createRequire(import.meta.url);
     const route = compile("src/app/api/community/route.ts", {
@@ -203,6 +204,10 @@ function routeFixture(corrupt = false) {
         console: { error() {} },
         fetch: async (url) => {
             calls++;
+            if (String(url).endsWith("community-source.json"))
+                return pointer
+                    ? Response.json(pointer)
+                    : new Response("", { status: 404 });
             return String(url).endsWith(".gz")
                 ? new Response(
                       corrupt
@@ -225,7 +230,7 @@ test("report route caches verified source and rejects invalid filters", async ()
         new Request("https://argo.test/api/community?repository=unknown"),
     );
     assert.equal(invalid.status, 400);
-    assert.equal(calls(), 2);
+    assert.equal(calls(), 3);
 });
 test("report route fails closed when compressed source bytes do not match the summary checksum", async () => {
     const { route } = routeFixture(true);
@@ -245,4 +250,95 @@ test("failed validation evidence is rejected", () => {
             }),
         /validation/,
     );
+});
+
+test("versioned release pointer serves a checksum-verified snapshot", async () => {
+    const base =
+        "https://github.com/yash-rai-93/argo-data-platform/releases/download/community-data-123-1/";
+    const { route } = routeFixture(false, {
+        schema_version: 1,
+        summary_url: base + "recent-activity.json",
+        state_url: base + "recent-activity-state.json.gz",
+        summary_sha256: createHash("sha256")
+            .update(JSON.stringify(snapshot))
+            .digest("hex"),
+    });
+    const response = await route.GET(
+        new Request("https://argo.test/api/community"),
+    );
+    assert.equal(response.status, 200);
+    assert.equal(
+        (await response.json()).source.summaryUrl,
+        base + "recent-activity.json",
+    );
+});
+test("foreign release URLs and wrong summary hashes fail closed", async () => {
+    const base =
+        "https://github.com/yash-rai-93/argo-data-platform/releases/download/community-data-123-1/";
+    for (const overrides of [
+        { summary_url: "https://other.example/recent-activity.json" },
+        { summary_sha256: "0".repeat(64) },
+        { state_url: base + "../recent-activity-state.json.gz" },
+    ]) {
+        const { route } = routeFixture(false, {
+            schema_version: 1,
+            summary_url: base + "recent-activity.json",
+            state_url: base + "recent-activity-state.json.gz",
+            summary_sha256: createHash("sha256")
+                .update(JSON.stringify(snapshot))
+                .digest("hex"),
+            ...overrides,
+        });
+        assert.equal(
+            (await route.GET(new Request("https://argo.test/api/community")))
+                .status,
+            503,
+        );
+    }
+});
+test("synthetic 90-day scope supports all 500 repositories and blank incomplete cohorts", () => {
+    const expanded = {
+        ...state,
+        coverage_start: "2026-07-24",
+        covered_days: Array.from({ length: 90 }, (_, i) =>
+            metrics.addDays("2026-07-24", i),
+        ),
+        repositories: [...new Set(state.events.map((e) => e.repo_name))],
+    };
+    while (expanded.repositories.length < 500)
+        expanded.repositories.push(
+            "synthetic/repo-" + expanded.repositories.length,
+        );
+    const summary = {
+        ...snapshot,
+        coverage_start: expanded.coverage_start,
+        quality: { ...snapshot.quality, expected_days: 90, covered_days: 90 },
+        daily: expanded.covered_days.map(
+            (date) =>
+                snapshot.daily.find((d) => d.date === date) ?? {
+                    date,
+                    events: 0,
+                    contributors: 0,
+                },
+        ),
+    };
+    metrics.validateCheckpoint(expanded, summary);
+    const output = metrics.buildCommunityReport(
+        expanded,
+        summary,
+        metrics.resolveFilters(new URLSearchParams(), expanded),
+    );
+    assert.equal(output.weeks.length, 13);
+    assert.equal(output.options.repositories.length, 500);
+    assert.equal(output.totals.contributors, snapshot.active_contributors);
+    const inactive = metrics.buildCommunityReport(
+        expanded,
+        summary,
+        metrics.resolveFilters(
+            new URLSearchParams("repository=synthetic/repo-499"),
+            expanded,
+        ),
+    );
+    assert.equal(inactive.totals.events, 0);
+    assert(output.cohorts.every((row) => row.cells.at(-1) === null));
 });

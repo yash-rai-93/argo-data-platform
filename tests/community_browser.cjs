@@ -186,6 +186,38 @@ async function main() {
     await mobile.screenshot({
         path: path.join(output, "04-mobile-report.png"),
     });
+
+    // Synthetic layout fixture only: real 90-day metric semantics are unit-tested.
+    const synthetic = structuredClone(baseline);
+    synthetic.filters.start = "2026-07-24";
+    synthetic.source.coverageStart = "2026-07-24";
+    synthetic.source.coverage = Array.from({length:90},(_,i)=>({
+        date:new Date(Date.UTC(2026,6,24+i)).toISOString().slice(0,10),events:0
+    }));
+    synthetic.weeks = Array.from({length:13},(_,i)=>({
+        start:synthetic.source.coverage[i*7].date,complete:i<12
+    }));
+    synthetic.cohorts = synthetic.weeks.map((w,i)=>({
+        start:w.start,size:1,cells:Array.from({length:13},(_,j)=>
+            i+j<12?{count:1,percent:100}:null)
+    }));
+    while(synthetic.options.repositories.length<500)
+        synthetic.options.repositories.push("synthetic/repo-"+synthetic.options.repositories.length);
+    const expanded = await context.newPage();
+    expanded.on("pageerror",error=>errors.push(error.message));
+    await expanded.route("**/api/community*",route=>route.fulfill({json:synthetic}));
+    await expanded.goto(base+"/community");
+    await expanded.getByRole("button",{name:/Participation & Concentration/}).click();
+    const wide=expanded.getByRole("table",{name:/Observed weekly cohort returns/});
+    await wide.waitFor();
+    assert.equal(await wide.locator("thead th").count(),15);
+    await wide.scrollIntoViewIfNeeded();
+    assert(await expanded.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2));
+    await expanded.screenshot({path:path.join(output,"05-synthetic-90-day-cohorts.png")});
+    await expanded.setViewportSize({width:390,height:844});
+    assert(await expanded.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2));
+    await expanded.screenshot({path:path.join(output,"06-synthetic-90-day-mobile.png")});
+
     assert.deepEqual(errors, []);
     await browser.close();
     const report = {
@@ -203,6 +235,8 @@ async function main() {
             "invalid UTC date",
             "mobile navigation and overflow",
             "no page exceptions",
+            "synthetic 13-week cohort layout",
+            "synthetic 90-day mobile overflow",
         ],
         sourceEvents: baseline.source.snapshotEvents,
     };
