@@ -6,7 +6,7 @@ on:
       operation:
         description: Estimate or apply a recent refresh, or rebuild historical training artifacts
         type: choice
-        options: [incremental-dry-run, incremental-refresh, backfill-dry-run, backfill-refresh, dry-run, rebuild]
+        options: [incremental-dry-run, incremental-refresh, backfill-dry-run, backfill-refresh, pilot-dry-run, pilot-refresh, dry-run, rebuild]
         default: incremental-dry-run
       maximum_bytes_billed:
         description: "Required for apply/rebuild: positive bytes cap; recent refresh maximum 20000000000"
@@ -241,3 +241,72 @@ jobs:
             echo ""
             echo "The approved cursor advances only when these two files reach main. A visitor never triggers BigQuery."
           } >> "$GITHUB_STEP_SUMMARY"
+
+  pilot-activity:
+    if: github.ref == 'refs/heads/main' && startsWith(inputs.operation, 'pilot-')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      GOOGLE_CLOUD_PROJECT: ${{ vars.GCP_PROJECT_ID }}
+      GCS_BUCKET: ${{ vars.GCP_DATA_BUCKET }}
+      CAP: ${{ inputs.maximum_bytes_billed }}
+      END_DATE: ${{ inputs.refresh_end }}
+      OPERATION: ${{ inputs.operation }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check pilot configuration
+        env:
+          WIF_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          ETL_SERVICE_ACCOUNT: ${{ vars.GCP_ETL_SERVICE_ACCOUNT }}
+        run: |
+          set -euo pipefail
+          test -n "$GOOGLE_CLOUD_PROJECT"
+          test -n "$WIF_PROVIDER"
+          test -n "$ETL_SERVICE_ACCOUNT"
+          test -n "$END_DATE" || { echo "Set an explicit refresh_end copied between estimate and apply."; exit 1; }
+          if [ "$OPERATION" = pilot-refresh ]; then
+            test -n "$GCS_BUCKET" || { echo "Set GCP_DATA_BUCKET to an existing private US bucket."; exit 1; }
+            if [[ "$CAP" =~ ^[1-9][0-9]{0,10}$ ]] && (( CAP <= 20000000000 )); then
+              echo "Explicit per-query cap: $CAP bytes"
+            else
+              echo "Set a positive maximum_bytes_billed of at most 20000000000."; exit 1
+            fi
+          fi
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv python install 3.12
+      - run: uv sync --frozen
+      - name: Validate the versioned scope and 90-day batch plan
+        run: uv run python -m etl.pilot_activity --plan-only --days 90 --end-date "$END_DATE"
+      - uses: google-github-actions/auth@v3
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_ETL_SERVICE_ACCOUNT }}
+      - name: Estimate or land the isolated seven-day pilot
+        run: |
+          set -euo pipefail
+          args=()
+          if [ "$OPERATION" = pilot-refresh ]; then
+            args+=(--apply --maximum-bytes-billed "$CAP")
+          fi
+          uv run python -m etl.pilot_activity --end-date "$END_DATE" --report data/generated/pilot-report.json "${args[@]}"
+          {
+            echo '### 500-repository pilot'
+            echo
+            echo 'This run does not publish or advance the production dashboard.'
+            echo
+            echo '```json'
+            cat data/generated/pilot-report.json
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: argo-pilot-${{ github.run_id }}
+          path: data/generated/pilot-report.json
+          if-no-files-found: error
+          retention-days: 14

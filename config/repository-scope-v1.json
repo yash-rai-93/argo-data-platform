@@ -1,0 +1,3067 @@
+{
+  "schema_version": 1,
+  "scope_id": "python-500-v1",
+  "selected_at": "2026-10-24",
+  "target_repositories": 500,
+  "method": "Preserve 24 existing repositories, then round-robin the first 100 GitHub search results in each category, deduplicated by repository ID; stop at 500.",
+  "limitations": [
+    "Purposive, popularity-biased sample; not representative of all Python projects.",
+    "Search language/topic labels describe discovery, not verified code composition.",
+    "Selection groups are discovery buckets, not exclusive domain classifications.",
+    "Source coverage and observed activity must be measured separately from repository selection."
+  ],
+  "searches": [
+    {
+      "category": "ml",
+      "query": "language:Python topic:machine-learning archived:false fork:false stars:>=100 sort:stars-desc",
+      "per_page": 100,
+      "page": 1
+    },
+    {
+      "category": "web",
+      "query": "language:Python topic:web archived:false fork:false stars:>=100 sort:stars-desc",
+      "per_page": 100,
+      "page": 1
+    },
+    {
+      "category": "data",
+      "query": "language:Python topic:data-science archived:false fork:false stars:>=100 sort:stars-desc",
+      "per_page": 100,
+      "page": 1
+    },
+    {
+      "category": "tools",
+      "query": "language:Python topic:developer-tools archived:false fork:false stars:>=50 sort:stars-desc",
+      "per_page": 100,
+      "page": 1
+    },
+    {
+      "category": "science",
+      "query": "language:Python topic:scientific-computing archived:false fork:false stars:>=50 sort:stars-desc",
+      "per_page": 100,
+      "page": 1
+    },
+    {
+      "category": "automation",
+      "query": "language:Python topic:automation archived:false fork:false stars:>=50 sort:stars-desc",
+      "per_page": 100,
+      "page": 1
+    },
+    {
+      "category": "cli",
+      "query": "language:Python topic:cli archived:false fork:false stars:>=50 sort:stars-desc",
+      "per_page": 100,
+      "page": 1
+    },
+    {
+      "category": "infra",
+      "query": "language:Python topic:devops archived:false fork:false stars:>=50 sort:stars-desc",
+      "per_page": 100,
+      "page": 1
+    }
+  ],
+  "repositories": [
+    {
+      "repository_id": "81598961",
+      "name": "python/cpython",
+      "selection_group": "existing_scope",
+      "aliases": []
+    },
+    {
+      "repository_id": "4164482",
+      "name": "django/django",
+      "selection_group": "existing_scope",
+      "aliases": []
+    },
+    {
+      "repository_id": "596892",
+      "name": "pallets/flask",
+      "selection_group": "existing_scope",
+      "aliases": []
+    },
+    {
+      "repository_id": "858127",
+      "name": "pandas-dev/pandas",
+      "selection_group": "existing_scope",
+      "aliases": []
+    },
+    {
+      "repository_id": "908607",
+      "name": "numpy/numpy",
+      "selection_group": "existing_scope",
+      "aliases": []
+    },
+    {
+      "repository_id": "1460385",
+      "name": "scipy/scipy",
+      "selection_group": "existing_scope",
+      "aliases": []
+    },
+    {
+      "repository_id": "843222",
+      "name": "scikit-learn/scikit-learn",
+      "selection_group": "existing_scope",
+      "aliases": []
+    },
+    {
+      "repository_id": "65600975",
+      "name": "pytorch/pytorch",
+      "selection_group": "existing_scope",
+      "aliases": []
+    },
+    {
+      "repository_id": "155220641",
+      "name": "huggingface/transformers",
+      "selection_group": "existing_scope",
+      "aliases": []
+    },
+    {
+      "repository_id": "160919119",
+      "name": "fastapi/fastapi",
+      "selection_group": "existing_scope",
+      "aliases": [
+        "tiangolo/fastapi"
+      ]
+    },
+    {
+      "repository_id": "1431547",
+      "name": "encode/django-rest-framework",
+      "selection_group": "existing_scope",
+      "aliases": []
+    },
+    {
+      "repository_id": "1362490",
+      "name": "psf/requests",
+      "selection_group": "existing_scope",
+      "aliases": []
+    },
+    {
+      "repository_id": "1446467",
+      "name": "pypa/pip",
+      "selection_group": "existing_scope",
+      "aliases": []
+    },
+    {
+      "repository_id": "33884891",
+      "name": "apache/airflow",
+      "selection_group": "existing_scope",
+      "aliases": []
+    },
+    {
+      "repository_id": "3638964",
+      "name": "ansible/ansible",
+      "selection_group": "existing_scope",
+      "aliases": []
+    },
+    {
+      "repository_id": "529502",
+      "name": "scrapy/scrapy",
+      "selection_group": "existing_scope",
+      "aliases": []
+    },
+    {
+      "repository_id": "184460",
+      "name": "celery/celery",
+      "selection_group": "existing_scope",
+      "aliases": []
+    },
+    {
+      "repository_id": "159271175",
+      "name": "sqlalchemy/sqlalchemy",
+      "selection_group": "existing_scope",
+      "aliases": []
+    },
+    {
+      "repository_id": "1385122",
+      "name": "matplotlib/matplotlib",
+      "selection_group": "existing_scope",
+      "aliases": []
+    },
+    {
+      "repository_id": "33015583",
+      "name": "keras-team/keras",
+      "selection_group": "existing_scope",
+      "aliases": []
+    },
+    {
+      "repository_id": "204086862",
+      "name": "streamlit/streamlit",
+      "selection_group": "existing_scope",
+      "aliases": []
+    },
+    {
+      "repository_id": "90194616",
+      "name": "pydantic/pydantic",
+      "selection_group": "existing_scope",
+      "aliases": []
+    },
+    {
+      "repository_id": "37489525",
+      "name": "pytest-dev/pytest",
+      "selection_group": "existing_scope",
+      "aliases": []
+    },
+    {
+      "repository_id": "60374819",
+      "name": "jupyterlab/jupyterlab",
+      "selection_group": "existing_scope",
+      "aliases": []
+    },
+    {
+      "repository_id": "83222441",
+      "name": "donnemartin/system-design-primer",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "222751131",
+      "name": "Asabeneh/30-Days-Of-Python",
+      "selection_group": "data",
+      "aliases": []
+    },
+    {
+      "repository_id": "1200597263",
+      "name": "Graphify-Labs/graphify",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "1079456184",
+      "name": "K-Dense-AI/scientific-agent-skills",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "626805178",
+      "name": "langgenius/dify",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "307260205",
+      "name": "yt-dlp/yt-dlp",
+      "selection_group": "cli",
+      "aliases": []
+    },
+    {
+      "repository_id": "212639071",
+      "name": "bregman-arie/devops-exercises",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "527591471",
+      "name": "AUTOMATIC1111/stable-diffusion-webui",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "39464018",
+      "name": "apache/superset",
+      "selection_group": "data",
+      "aliases": []
+    },
+    {
+      "repository_id": "1078079172",
+      "name": "ComposioHQ/awesome-claude-skills",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "1165277268",
+      "name": "Panniantong/Agent-Reach",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "873328",
+      "name": "getsentry/sentry",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "101138315",
+      "name": "d2l-ai/d2l-zh",
+      "selection_group": "ml",
+      "aliases": []
+    },
+    {
+      "repository_id": "1238120057",
+      "name": "ayghri/i-have-adhd",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "15730865",
+      "name": "spack/spack",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "872119017",
+      "name": "D4Vinci/Scrapling",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "162998479",
+      "name": "sherlock-project/sherlock",
+      "selection_group": "cli",
+      "aliases": []
+    },
+    {
+      "repository_id": "3544424",
+      "name": "httpie/cli",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "323048702",
+      "name": "openbq-org/OpenBB",
+      "selection_group": "ml",
+      "aliases": []
+    },
+    {
+      "repository_id": "1134426800",
+      "name": "sickn33/agentic-awesome-skills",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "118264731",
+      "name": "deepcharles/ruptures",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "638629097",
+      "name": "Aider-AI/aider",
+      "selection_group": "cli",
+      "aliases": []
+    },
+    {
+      "repository_id": "42289146",
+      "name": "meolu/walle-web",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "1185590488",
+      "name": "rohitg00/ai-engineering-from-scratch",
+      "selection_group": "ml",
+      "aliases": []
+    },
+    {
+      "repository_id": "1575319",
+      "name": "inducer/pycuda",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "90563585",
+      "name": "chubin/cheat.sh",
+      "selection_group": "cli",
+      "aliases": []
+    },
+    {
+      "repository_id": "203456148",
+      "name": "bunkerity/bunkerweb",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "2909429",
+      "name": "nicolargo/glances",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "266417772",
+      "name": "SimplifyJobs/Summer2027-Internships",
+      "selection_group": "data",
+      "aliases": []
+    },
+    {
+      "repository_id": "488641606",
+      "name": "agno-agi/agno",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "132509274",
+      "name": "nschloe/awesome-scientific-computing",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "756289095",
+      "name": "FujiwaraChoki/MoneyPrinterV2",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "275386910",
+      "name": "soxoj/maigret",
+      "selection_group": "cli",
+      "aliases": []
+    },
+    {
+      "repository_id": "38067078",
+      "name": "healthchecks/healthchecks",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "290091948",
+      "name": "labmlai/annotated_deep_learning_paper_implementations",
+      "selection_group": "ml",
+      "aliases": []
+    },
+    {
+      "repository_id": "59720190",
+      "name": "sanic-org/sanic",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "499162016",
+      "name": "pdebench/PDEBench",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "639835356",
+      "name": "assafelovic/gpt-researcher",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "19130362",
+      "name": "geerlingguy/ansible-for-devops",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "473670467",
+      "name": "flet-dev/flet",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "679237742",
+      "name": "Pythagora-io/gpt-pilot",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "18601900",
+      "name": "itamarst/eliot",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "139199684",
+      "name": "PrefectHQ/prefect",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "355959597",
+      "name": "Textualize/textual",
+      "selection_group": "cli",
+      "aliases": []
+    },
+    {
+      "repository_id": "273913340",
+      "name": "khuedoan/homelab",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "535360445",
+      "name": "ultralytics/ultralytics",
+      "selection_group": "ml",
+      "aliases": []
+    },
+    {
+      "repository_id": "80358070",
+      "name": "qazbnm456/awesome-web-security",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "71932349",
+      "name": "ray-project/ray",
+      "selection_group": "data",
+      "aliases": []
+    },
+    {
+      "repository_id": "557075997",
+      "name": "reflex-dev/reflex",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "1575307",
+      "name": "inducer/pyopencl",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "764723738",
+      "name": "Skyvern-AI/skyvern",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "1222527844",
+      "name": "ifixai-ai/iFixAi",
+      "selection_group": "cli",
+      "aliases": []
+    },
+    {
+      "repository_id": "29620400",
+      "name": "xonsh/xonsh",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "114747226",
+      "name": "deepfakes/faceswap",
+      "selection_group": "ml",
+      "aliases": []
+    },
+    {
+      "repository_id": "21244505",
+      "name": "qutebrowser/qutebrowser",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "162405963",
+      "name": "gradio-app/gradio",
+      "selection_group": "data",
+      "aliases": []
+    },
+    {
+      "repository_id": "1079084637",
+      "name": "alirezarezvani/claude-skills",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "100426697",
+      "name": "optiland/optiland",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "460914281",
+      "name": "Avaiga/taipy",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "224386599",
+      "name": "bridgecrewio/checkov",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "83844720",
+      "name": "ageitgey/face_recognition",
+      "selection_group": "ml",
+      "aliases": []
+    },
+    {
+      "repository_id": "143580",
+      "name": "django-cms/django-cms",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "21467110",
+      "name": "explosion/spaCy",
+      "selection_group": "data",
+      "aliases": []
+    },
+    {
+      "repository_id": "678526156",
+      "name": "marimo-team/marimo",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "79413341",
+      "name": "dswah/pyGAM",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "69290591",
+      "name": "InstaPy/InstaPy",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "36804486",
+      "name": "tqdm/tqdm",
+      "selection_group": "cli",
+      "aliases": []
+    },
+    {
+      "repository_id": "3182350",
+      "name": "amoffat/sh",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "571613891",
+      "name": "roboflow/supervision",
+      "selection_group": "ml",
+      "aliases": []
+    },
+    {
+      "repository_id": "7040500",
+      "name": "falconry/falcon",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "80990461",
+      "name": "eriklindernoren/ML-From-Scratch",
+      "selection_group": "data",
+      "aliases": []
+    },
+    {
+      "repository_id": "1202599845",
+      "name": "KKKKhazix/khazix-skills",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "113799037",
+      "name": "arvkevi/kneed",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "91594105",
+      "name": "ansible/awx",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "82729529",
+      "name": "google/python-fire",
+      "selection_group": "cli",
+      "aliases": []
+    },
+    {
+      "repository_id": "191126383",
+      "name": "clearml/clearml",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "287463830",
+      "name": "microsoft/qlib",
+      "selection_group": "ml",
+      "aliases": []
+    },
+    {
+      "repository_id": "93322695",
+      "name": "ctf-wiki/ctf-wiki",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "178626720",
+      "name": "Lightning-AI/pytorch-lightning",
+      "selection_group": "data",
+      "aliases": []
+    },
+    {
+      "repository_id": "780737106",
+      "name": "SWE-agent/SWE-agent",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "178251395",
+      "name": "NeuroDiffGym/neurodiffeq",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "1078319457",
+      "name": "yusufkaraaslan/Skill_Seekers",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "229937405",
+      "name": "fastapi/typer",
+      "selection_group": "cli",
+      "aliases": []
+    },
+    {
+      "repository_id": "14160461",
+      "name": "infobyte/faraday",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "378100758",
+      "name": "sparckles/Robyn",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "152166877",
+      "name": "d2l-ai/d2l-en",
+      "selection_group": "data",
+      "aliases": []
+    },
+    {
+      "repository_id": "28078987",
+      "name": "pharmai/plip",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "1020672081",
+      "name": "Usagi-org/ai-goofish-monitor",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "19103692",
+      "name": "pallets/click",
+      "selection_group": "cli",
+      "aliases": []
+    },
+    {
+      "repository_id": "506056362",
+      "name": "gonglei007/GameDevMind",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "458648791",
+      "name": "paperless-ngx/paperless-ngx",
+      "selection_group": "ml",
+      "aliases": []
+    },
+    {
+      "repository_id": "40687563",
+      "name": "oppia/oppia",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "29749635",
+      "name": "donnemartin/data-science-ipython-notebooks",
+      "selection_group": "data",
+      "aliases": []
+    },
+    {
+      "repository_id": "83878269",
+      "name": "treeverse/dvc",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "47663690",
+      "name": "scikit-video/scikit-video",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "781261349",
+      "name": "microsoft/RD-Agent",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "827590",
+      "name": "beetbox/beets",
+      "selection_group": "cli",
+      "aliases": []
+    },
+    {
+      "repository_id": "19051806",
+      "name": "StackStorm/st2",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "14265145",
+      "name": "dpgaspar/Flask-AppBuilder",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "1008304614",
+      "name": "semantica-agi/semantica",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "14727320",
+      "name": "simpeg/simpeg",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "1135791677",
+      "name": "lsdefine/GenericAgent",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "151871286",
+      "name": "pypa/pipx",
+      "selection_group": "cli",
+      "aliases": []
+    },
+    {
+      "repository_id": "219294494",
+      "name": "xxh/xxh",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "20180433",
+      "name": "MechanicalSoup/MechanicalSoup",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "33702544",
+      "name": "plotly/dash",
+      "selection_group": "data",
+      "aliases": []
+    },
+    {
+      "repository_id": "1207091162",
+      "name": "yizhiyanhua-ai/fireworks-tech-graph",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "23316495",
+      "name": "usnistgov/fipy",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "751008707",
+      "name": "FujiwaraChoki/MoneyPrinter",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "590604203",
+      "name": "TheR1D/shell_gpt",
+      "selection_group": "cli",
+      "aliases": []
+    },
+    {
+      "repository_id": "553679010",
+      "name": "initialcommit-com/git-sim",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "35882519",
+      "name": "spec-first/connexion",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "1266212515",
+      "name": "omnigent-ai/omnigent",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "20281732",
+      "name": "inducer/loopy",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "229566288",
+      "name": "ultrafunkamsterdam/undetected-chromedriver",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "68402336",
+      "name": "streamlink/streamlink",
+      "selection_group": "cli",
+      "aliases": []
+    },
+    {
+      "repository_id": "979886407",
+      "name": "IBM/mcp-context-forge",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "235860204",
+      "name": "deepspeedai/DeepSpeed",
+      "selection_group": "ml",
+      "aliases": []
+    },
+    {
+      "repository_id": "31315021",
+      "name": "Kinto/kinto",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "631258918",
+      "name": "sinaptik-ai/pandas-ai",
+      "selection_group": "data",
+      "aliases": []
+    },
+    {
+      "repository_id": "55584626",
+      "name": "httpie/http-prompt",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "121581663",
+      "name": "InsightSoftwareConsortium/itkwidgets",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "21273155",
+      "name": "robotframework/robotframework",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "468957086",
+      "name": "blacklanternsecurity/bbot",
+      "selection_group": "cli",
+      "aliases": []
+    },
+    {
+      "repository_id": "157661691",
+      "name": "opendevops-cn/opendevops",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "577603990",
+      "name": "LAION-AI/Open-Assistant",
+      "selection_group": "ml",
+      "aliases": []
+    },
+    {
+      "repository_id": "599687030",
+      "name": "zhayujie/bot-on-anything",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "1147838400",
+      "name": "anbeime/skill",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "35531022",
+      "name": "opendatacube/datacube-core",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "1212163658",
+      "name": "kangarooking/cangjie-skill",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "3308920",
+      "name": "harelba/q",
+      "selection_group": "cli",
+      "aliases": []
+    },
+    {
+      "repository_id": "808146034",
+      "name": "HolmesGPT/holmesgpt",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "730728120",
+      "name": "Lightning-AI/LitServe",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "1189384516",
+      "name": "repowise-dev/repowise",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "691914943",
+      "name": "CubicZebra/informatics",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "1132431999",
+      "name": "aden-hive/hive",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "1162516847",
+      "name": "MakazhanAlpamys/Soup",
+      "selection_group": "cli",
+      "aliases": []
+    },
+    {
+      "repository_id": "85092645",
+      "name": "guohongze/adminset",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "786187721",
+      "name": "rio-labs/rio",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "212037775",
+      "name": "akfamily/akshare",
+      "selection_group": "data",
+      "aliases": []
+    },
+    {
+      "repository_id": "56897766",
+      "name": "donnemartin/gitsome",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "1177129875",
+      "name": "ZimoLiao/scholaraio",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "72070681",
+      "name": "saulpw/visidata",
+      "selection_group": "cli",
+      "aliases": []
+    },
+    {
+      "repository_id": "4387547",
+      "name": "errbotio/errbot",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "203677928",
+      "name": "mhxion/awesome-discord-communities",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "149430917",
+      "name": "recommenders-team/recommenders",
+      "selection_group": "data",
+      "aliases": []
+    },
+    {
+      "repository_id": "1060250338",
+      "name": "lintsinghua/DeepAudit",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "88776493",
+      "name": "yt-project/yt",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "714143245",
+      "name": "OthersideAI/self-operating-computer",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "202927395",
+      "name": "eon01/kubernetes-workshop",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "247266215",
+      "name": "JaidedAI/EasyOCR",
+      "selection_group": "ml",
+      "aliases": []
+    },
+    {
+      "repository_id": "112169994",
+      "name": "elliotgao2/toapi",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "658518",
+      "name": "ipython/ipython",
+      "selection_group": "data",
+      "aliases": []
+    },
+    {
+      "repository_id": "781914762",
+      "name": "julep-ai/julep",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "92426682",
+      "name": "pypr/pysph",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "740316987",
+      "name": "microsoft/UFO",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "215404927",
+      "name": "kellyjonbrazil/jc",
+      "selection_group": "cli",
+      "aliases": []
+    },
+    {
+      "repository_id": "378598624",
+      "name": "robusta-dev/robusta",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "23612831",
+      "name": "flexxui/flexx",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "1349775",
+      "name": "piskvorky/gensim",
+      "selection_group": "data",
+      "aliases": []
+    },
+    {
+      "repository_id": "37382467",
+      "name": "chrissimpkins/codeface",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "11670333",
+      "name": "PMEAL/OpenPNM",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "741365632",
+      "name": "apify/crawlee-python",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "130369089",
+      "name": "jdepoix/youtube-transcript-api",
+      "selection_group": "cli",
+      "aliases": []
+    },
+    {
+      "repository_id": "1073337396",
+      "name": "jeremylongshore/tons-of-skills-marketplace",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "688164459",
+      "name": "harvard-edge/cs249r_book",
+      "selection_group": "ml",
+      "aliases": []
+    },
+    {
+      "repository_id": "1074699914",
+      "name": "nickrunning/wechat-selkies",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "131619646",
+      "name": "dagster-io/dagster",
+      "selection_group": "data",
+      "aliases": []
+    },
+    {
+      "repository_id": "5739134",
+      "name": "b-ryan/powerline-shell",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "112070868",
+      "name": "DIYer22/boxx",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "118709540",
+      "name": "AirtestProject/Airtest",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "1229284184",
+      "name": "WenyuChiou/awesome-agentic-ai-zh",
+      "selection_group": "cli",
+      "aliases": []
+    },
+    {
+      "repository_id": "65646228",
+      "name": "mitogen-hq/mitogen",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "51702566",
+      "name": "tiangolo/uwsgi-nginx-flask-docker",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "1133901637",
+      "name": "Q00/ouroboros",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "827794204",
+      "name": "pathsim/pathsim",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "748674684",
+      "name": "X-PLUG/MobileAgent",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "230800939",
+      "name": "AdnanHodzic/auto-cpufreq",
+      "selection_group": "cli",
+      "aliases": []
+    },
+    {
+      "repository_id": "32283257",
+      "name": "pytest-dev/pytest-testinfra",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "253975496",
+      "name": "srbhr/Resume-Matcher",
+      "selection_group": "ml",
+      "aliases": []
+    },
+    {
+      "repository_id": "265684535",
+      "name": "kurogai/100-redteam-projects",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "1131107802",
+      "name": "FlorianBruniaux/claude-code-ultimate-guide",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "125622959",
+      "name": "maroba/findiff",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "512334495",
+      "name": "firerpa/lamda",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "474598050",
+      "name": "cider-security-research/cicd-goat",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "136202695",
+      "name": "mlflow/mlflow",
+      "selection_group": "ml",
+      "aliases": []
+    },
+    {
+      "repository_id": "164136678",
+      "name": "tiangolo/uvicorn-gunicorn-fastapi-docker",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "4704710",
+      "name": "mwaskom/seaborn",
+      "selection_group": "data",
+      "aliases": []
+    },
+    {
+      "repository_id": "1301657572",
+      "name": "superdesigndev/treg",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "17304005",
+      "name": "wmayner/pyemd",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "278881384",
+      "name": "kangvcar/InfoSpider",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "3868463",
+      "name": "jrnl-org/jrnl",
+      "selection_group": "cli",
+      "aliases": []
+    },
+    {
+      "repository_id": "334846691",
+      "name": "hystax/optscale",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "239201565",
+      "name": "serengil/deepface",
+      "selection_group": "ml",
+      "aliases": []
+    },
+    {
+      "repository_id": "260468353",
+      "name": "alisen39/TrWebOCR",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "49346299",
+      "name": "Data-Centric-AI-Community/fg-data-profiling",
+      "selection_group": "data",
+      "aliases": []
+    },
+    {
+      "repository_id": "1143237475",
+      "name": "Galaxy-Dawn/claude-scholar",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "242093001",
+      "name": "zwicker-group/py-pde",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "659412092",
+      "name": "RayVentura/ShortGPT",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "92997800",
+      "name": "pypa/hatch",
+      "selection_group": "cli",
+      "aliases": []
+    },
+    {
+      "repository_id": "2637203",
+      "name": "NixOS/nixops",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "440814573",
+      "name": "smithyhq/sqladmin",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "33457642",
+      "name": "dbcli/mycli",
+      "selection_group": "data",
+      "aliases": []
+    },
+    {
+      "repository_id": "965974441",
+      "name": "Klavis-AI/klavis",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "744916",
+      "name": "gem/oq-engine",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "291703561",
+      "name": "alirezamika/autoscraper",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "45355064",
+      "name": "jarun/buku",
+      "selection_group": "cli",
+      "aliases": []
+    },
+    {
+      "repository_id": "322456167",
+      "name": "Websoft9/websoft9",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "138331573",
+      "name": "sebastianruder/NLP-progress",
+      "selection_group": "ml",
+      "aliases": []
+    },
+    {
+      "repository_id": "566568196",
+      "name": "viser-project/viser",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "103071520",
+      "name": "fivetran/great_expectations",
+      "selection_group": "data",
+      "aliases": []
+    },
+    {
+      "repository_id": "841370602",
+      "name": "potpie-ai/potpie",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "1400250107",
+      "name": "BootLoops-ai/bootloops",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "54828252",
+      "name": "agronholm/apscheduler",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "12550138",
+      "name": "PyCQA/isort",
+      "selection_group": "cli",
+      "aliases": []
+    },
+    {
+      "repository_id": "175234937",
+      "name": "DasyDong/developer-roadmap",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "143615438",
+      "name": "MLEveryday/100-Days-Of-ML-Code",
+      "selection_group": "ml",
+      "aliases": []
+    },
+    {
+      "repository_id": "86774943",
+      "name": "arthaud/git-dumper",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "163346054",
+      "name": "ludwig-ai/ludwig",
+      "selection_group": "data",
+      "aliases": []
+    },
+    {
+      "repository_id": "41296876",
+      "name": "donnemartin/saws",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "1160505943",
+      "name": "jaechang-hits/SciAgent-Skills",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "17984636",
+      "name": "lebinh/ngxtop",
+      "selection_group": "cli",
+      "aliases": []
+    },
+    {
+      "repository_id": "106306056",
+      "name": "kapicorp/kapitan",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "250213286",
+      "name": "huggingface/datasets",
+      "selection_group": "ml",
+      "aliases": []
+    },
+    {
+      "repository_id": "23791087",
+      "name": "pretix/pretix",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "132975485",
+      "name": "cleanlab/cleanlab",
+      "selection_group": "data",
+      "aliases": []
+    },
+    {
+      "repository_id": "1003043071",
+      "name": "vitali87/code-graph-rag",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "19500159",
+      "name": "VIDA-NYU/reprozip",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "1141853351",
+      "name": "joeseesun/qiaomu-anything-to-notebooklm",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "635393461",
+      "name": "tconbeer/harlequin",
+      "selection_group": "cli",
+      "aliases": []
+    },
+    {
+      "repository_id": "5874515",
+      "name": "mistio/mist-ce",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "158754800",
+      "name": "Neoteroi/BlackSheep",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "1885237",
+      "name": "statsmodels/statsmodels",
+      "selection_group": "data",
+      "aliases": []
+    },
+    {
+      "repository_id": "362500938",
+      "name": "argilla-io/argilla",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "79635757",
+      "name": "eltonlaw/impyute",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "1151333143",
+      "name": "browser-act/skills",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "200590949",
+      "name": "rsalmei/alive-progress",
+      "selection_group": "cli",
+      "aliases": []
+    },
+    {
+      "repository_id": "1172222461",
+      "name": "valqore/valqore",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "240315046",
+      "name": "jina-ai/serve",
+      "selection_group": "ml",
+      "aliases": []
+    },
+    {
+      "repository_id": "113248605",
+      "name": "MasoniteFramework/masonite",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "86031674",
+      "name": "wandb/wandb",
+      "selection_group": "data",
+      "aliases": []
+    },
+    {
+      "repository_id": "20037651",
+      "name": "jazzband/django-silk",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "144892637",
+      "name": "rossant/awesome-scientific-python",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "36223210",
+      "name": "pywinauto/pywinauto",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "38782303",
+      "name": "donnemartin/dev-setup",
+      "selection_group": "cli",
+      "aliases": []
+    },
+    {
+      "repository_id": "1083330204",
+      "name": "ai-infra-curriculum/ai-infra-engineer-learning",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "655413331",
+      "name": "Zeyi-Lin/HivisionIDPhotos",
+      "selection_group": "ml",
+      "aliases": []
+    },
+    {
+      "repository_id": "31502883",
+      "name": "wooey/Wooey",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "6105714",
+      "name": "pymupdf/PyMuPDF",
+      "selection_group": "data",
+      "aliases": []
+    },
+    {
+      "repository_id": "859956307",
+      "name": "aipotheosis-labs/aci",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "830493524",
+      "name": "nabla-ml/nabla",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "893025857",
+      "name": "TideDra/zotero-arxiv-daily",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "103753749",
+      "name": "jimmy201602/webterminal",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "102692863",
+      "name": "onnx/onnx",
+      "selection_group": "ml",
+      "aliases": []
+    },
+    {
+      "repository_id": "137044405",
+      "name": "greyli/helloflask",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "199509705",
+      "name": "autogluon/autogluon",
+      "selection_group": "data",
+      "aliases": []
+    },
+    {
+      "repository_id": "1282680810",
+      "name": "Jia-Ethan/codex-keysmith",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "1193943219",
+      "name": "arriemeijer-creator/AeroJAX",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "88980374",
+      "name": "OWASP/Nettacker",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "66913302",
+      "name": "reorx/httpstat",
+      "selection_group": "cli",
+      "aliases": []
+    },
+    {
+      "repository_id": "991454605",
+      "name": "DataTalksClub/ai-dev-tools-zoomcamp",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "70908208",
+      "name": "RasaHQ/rasa",
+      "selection_group": "ml",
+      "aliases": []
+    },
+    {
+      "repository_id": "900152988",
+      "name": "nottelabs/notte",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "83286964",
+      "name": "Yorko/mlcourse.ai",
+      "selection_group": "data",
+      "aliases": []
+    },
+    {
+      "repository_id": "295559739",
+      "name": "levimcclenny/SA-PINNs",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "1166160145",
+      "name": "TomBadash/Mouser",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "1191930807",
+      "name": "wiltodelta/remove-ai-watermarks",
+      "selection_group": "cli",
+      "aliases": []
+    },
+    {
+      "repository_id": "175283225",
+      "name": "undergroundwires/Azure-in-bullet-points",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "292374787",
+      "name": "stas00/ml-engineering",
+      "selection_group": "ml",
+      "aliases": []
+    },
+    {
+      "repository_id": "36075352",
+      "name": "liberapay/liberapay.com",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "138224079",
+      "name": "modin-project/modin",
+      "selection_group": "data",
+      "aliases": []
+    },
+    {
+      "repository_id": "46246431",
+      "name": "donnemartin/haxor-news",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "48294591",
+      "name": "AppliedMechanics-EAFIT/SolidsPy",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "70612113",
+      "name": "CCOSTAN/Home-AssistantConfig",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "782544882",
+      "name": "patched-codes/patchwork",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "68619379",
+      "name": "bbfamily/abu",
+      "selection_group": "ml",
+      "aliases": []
+    },
+    {
+      "repository_id": "84252717",
+      "name": "photonixapp/photonix",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "45271904",
+      "name": "drivendataorg/cookiecutter-data-science",
+      "selection_group": "data",
+      "aliases": []
+    },
+    {
+      "repository_id": "38226908",
+      "name": "nvdv/vprof",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "88780543",
+      "name": "scikit-garden/scikit-garden",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "1060619404",
+      "name": "iflytek/astron-rpa",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "1217942969",
+      "name": "wuyoscar/GPT-Image2-Skill",
+      "selection_group": "cli",
+      "aliases": []
+    },
+    {
+      "repository_id": "1023024788",
+      "name": "VersusControl/devops-ai-guidelines",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "596516907",
+      "name": "arc53/DocsGPT",
+      "selection_group": "ml",
+      "aliases": []
+    },
+    {
+      "repository_id": "116507869",
+      "name": "1N3/BlackWidow",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "156401841",
+      "name": "sktime/sktime",
+      "selection_group": "data",
+      "aliases": []
+    },
+    {
+      "repository_id": "1173658919",
+      "name": "FonaTech/Clouds-Coder",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "119572063",
+      "name": "NullArray/AutoSploit",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "1951148",
+      "name": "frostming/legit",
+      "selection_group": "cli",
+      "aliases": []
+    },
+    {
+      "repository_id": "316101837",
+      "name": "w5teams/w5",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "1177608268",
+      "name": "wanshuiyin/Auto-claude-code-research-in-sleep",
+      "selection_group": "ml",
+      "aliases": []
+    },
+    {
+      "repository_id": "322936836",
+      "name": "awtkns/fastapi-crudrouter",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "105699750",
+      "name": "yzhao062/pyod",
+      "selection_group": "data",
+      "aliases": []
+    },
+    {
+      "repository_id": "1327214801",
+      "name": "ShawnPana/phone-harness",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "2375854",
+      "name": "jobovy/galpy",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "31028375",
+      "name": "DefectDojo/django-DefectDojo",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "1059647468",
+      "name": "Quenary/tugtainer",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "73328905",
+      "name": "pytorch/vision",
+      "selection_group": "ml",
+      "aliases": []
+    },
+    {
+      "repository_id": "165551447",
+      "name": "HaoZhang95/Python24",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "223636350",
+      "name": "pycaret/pycaret",
+      "selection_group": "data",
+      "aliases": []
+    },
+    {
+      "repository_id": "1164005541",
+      "name": "foryourhealth111-pixel/Vibe-Skills",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "284098897",
+      "name": "Joshuaalbert/jaxns",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "877000812",
+      "name": "Integuru-AI/Integuru",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "688141049",
+      "name": "mangiucugna/json_repair",
+      "selection_group": "cli",
+      "aliases": []
+    },
+    {
+      "repository_id": "80561803",
+      "name": "Sceptre/sceptre",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "1155576139",
+      "name": "rocketride-org/rocketride-server",
+      "selection_group": "ml",
+      "aliases": []
+    },
+    {
+      "repository_id": "4006131",
+      "name": "requests-cache/requests-cache",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "55147386",
+      "name": "tflearn/tflearn",
+      "selection_group": "data",
+      "aliases": []
+    },
+    {
+      "repository_id": "1167034425",
+      "name": "NVIDIA/skills",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "63765507",
+      "name": "regionmask/regionmask",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "830063170",
+      "name": "GuanYixuan/pyJianYingDraft",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "87705200",
+      "name": "amanusk/s-tui",
+      "selection_group": "cli",
+      "aliases": []
+    },
+    {
+      "repository_id": "1073692842",
+      "name": "antoniorodr/cronboard",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "29906842",
+      "name": "owainlewis/awesome-artificial-intelligence",
+      "selection_group": "ml",
+      "aliases": []
+    },
+    {
+      "repository_id": "760722197",
+      "name": "tinyfish-io/agentql",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "148657183",
+      "name": "unit8co/darts",
+      "selection_group": "data",
+      "aliases": []
+    },
+    {
+      "repository_id": "1177927224",
+      "name": "Sunnnnch/electro_data_process_tool",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "1303258850",
+      "name": "kirodotdev/KiroCrew",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "1857825",
+      "name": "s3tools/s3cmd",
+      "selection_group": "cli",
+      "aliases": []
+    },
+    {
+      "repository_id": "1210071",
+      "name": "DataDog/dd-agent",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "320628155",
+      "name": "lukas-blecher/LaTeX-OCR",
+      "selection_group": "ml",
+      "aliases": []
+    },
+    {
+      "repository_id": "654116130",
+      "name": "14790897/handwriting-web",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "110684325",
+      "name": "polakowo/vectorbt",
+      "selection_group": "data",
+      "aliases": []
+    },
+    {
+      "repository_id": "1349253750",
+      "name": "Nanako0129/sepia",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "133808899",
+      "name": "helmholtz-analytics/heat",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "694266896",
+      "name": "intuitem/ciso-assistant-community",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "668619535",
+      "name": "idoavrah/terraform-tui",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "50231898",
+      "name": "graphql-python/flask-graphql",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "22489033",
+      "name": "lazyprogrammer/machine_learning_examples",
+      "selection_group": "data",
+      "aliases": []
+    },
+    {
+      "repository_id": "772385740",
+      "name": "entropy-research/Devon",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "48623680",
+      "name": "masfaraud/BMSpy",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "931365873",
+      "name": "haris-musa/excel-mcp-server",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "421880637",
+      "name": "tlkh/asitop",
+      "selection_group": "cli",
+      "aliases": []
+    },
+    {
+      "repository_id": "697550206",
+      "name": "codefuse-ai/codefuse-chatbot",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "179893494",
+      "name": "ddbourgin/numpy-ml",
+      "selection_group": "ml",
+      "aliases": []
+    },
+    {
+      "repository_id": "528328355",
+      "name": "modal-labs/modal-examples",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "493014338",
+      "name": "mage-ai/mage-ai",
+      "selection_group": "data",
+      "aliases": []
+    },
+    {
+      "repository_id": "1158479469",
+      "name": "liaohch3/claude-tap",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "323236652",
+      "name": "pmocz/latticeboltzmann-python",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "68465360",
+      "name": "tox-dev/tox",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "12398170",
+      "name": "tmux-python/tmuxp",
+      "selection_group": "cli",
+      "aliases": []
+    },
+    {
+      "repository_id": "296615591",
+      "name": "abhishek-ch/around-dataengineering",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "200645982",
+      "name": "ShannonAI/service-streamer",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "24528468",
+      "name": "vaexio/vaex",
+      "selection_group": "data",
+      "aliases": []
+    },
+    {
+      "repository_id": "1034803214",
+      "name": "vibheksoni/stealth-browser-mcp",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "645526005",
+      "name": "camlab-ethz/ConvolutionalNeuralOperator",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "237223760",
+      "name": "pyppeteer/pyppeteer",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "663203219",
+      "name": "speedyapply/JobSpy",
+      "selection_group": "cli",
+      "aliases": []
+    },
+    {
+      "repository_id": "1143403408",
+      "name": "rorkai/app-store-connect-cli-skills",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "122299416",
+      "name": "optuna/optuna",
+      "selection_group": "ml",
+      "aliases": []
+    },
+    {
+      "repository_id": "59737082",
+      "name": "dongweiming/web_develop",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "135584946",
+      "name": "py-why/dowhy",
+      "selection_group": "data",
+      "aliases": []
+    },
+    {
+      "repository_id": "1322651268",
+      "name": "fuxicodex/Fuxi",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "238259950",
+      "name": "iheartla/iheartla",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "63752974",
+      "name": "PokemonGoF/PokemonGo-Bot",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "618514446",
+      "name": "gptme/gptme",
+      "selection_group": "cli",
+      "aliases": []
+    },
+    {
+      "repository_id": "319786966",
+      "name": "vchinnipilli/kubestriker",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "299862",
+      "name": "nltk/nltk",
+      "selection_group": "ml",
+      "aliases": []
+    },
+    {
+      "repository_id": "80534589",
+      "name": "linkchecker/linkchecker",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "509436902",
+      "name": "PriorLabs/TabPFN",
+      "selection_group": "data",
+      "aliases": []
+    },
+    {
+      "repository_id": "1198040849",
+      "name": "wquguru/harness-books",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "28608092",
+      "name": "cytoflow/cytoflow",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "1129583447",
+      "name": "yifanfeng97/Hyper-Extract",
+      "selection_group": "cli",
+      "aliases": []
+    },
+    {
+      "repository_id": "971399370",
+      "name": "derisk-ai/OpenDerisk",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "38900806",
+      "name": "aleju/imgaug",
+      "selection_group": "ml",
+      "aliases": []
+    },
+    {
+      "repository_id": "617269166",
+      "name": "dropseed/plain",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "872005985",
+      "name": "OpenDCAI/DataFlow",
+      "selection_group": "data",
+      "aliases": []
+    },
+    {
+      "repository_id": "658453192",
+      "name": "hegelai/prompttools",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "1251648241",
+      "name": "brycewang-stanford/Auto-Research-Skills",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "16400221",
+      "name": "autokey/autokey",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "953587943",
+      "name": "rohitg00/kubectl-mcp-server",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "88285322",
+      "name": "hindupuravinash/the-gan-zoo",
+      "selection_group": "ml",
+      "aliases": []
+    },
+    {
+      "repository_id": "41960013",
+      "name": "metabrainz/listenbrainz-server",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "222183074",
+      "name": "jackzhenguo/python-small-examples",
+      "selection_group": "data",
+      "aliases": []
+    },
+    {
+      "repository_id": "64103823",
+      "name": "djrobstep/migra",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "74694616",
+      "name": "simpeg/discretize",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "763923484",
+      "name": "TracecatHQ/tracecat",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "63564957",
+      "name": "yangpeng14/DevOps",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "24561828",
+      "name": "gunthercox/ChatterBot",
+      "selection_group": "ml",
+      "aliases": []
+    },
+    {
+      "repository_id": "760163395",
+      "name": "hyperdiv/hyperdiv",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "102908804",
+      "name": "alteryx/featuretools",
+      "selection_group": "data",
+      "aliases": []
+    },
+    {
+      "repository_id": "1184866064",
+      "name": "leo-lilinxiao/codex-autoresearch",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "804234969",
+      "name": "camlab-ethz/poseidon",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "1132063646",
+      "name": "realiti4/claude-swap",
+      "selection_group": "cli",
+      "aliases": []
+    },
+    {
+      "repository_id": "686537865",
+      "name": "NotHarshhaa/into-the-devops",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "136914524",
+      "name": "flairNLP/flair",
+      "selection_group": "ml",
+      "aliases": []
+    },
+    {
+      "repository_id": "523339630",
+      "name": "arnaudmiribel/streamlit-extras",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "9952134",
+      "name": "python-visualization/folium",
+      "selection_group": "data",
+      "aliases": []
+    },
+    {
+      "repository_id": "589727205",
+      "name": "eli64s/readme-ai",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "5866704",
+      "name": "datajoint/datajoint-python",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "630824392",
+      "name": "SamurAIGPT/llm-wiki-agent",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "918778709",
+      "name": "evalstate/fast-agent",
+      "selection_group": "cli",
+      "aliases": []
+    },
+    {
+      "repository_id": "320122094",
+      "name": "run-x/opta",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "89846872",
+      "name": "jindongwang/transferlearning",
+      "selection_group": "ml",
+      "aliases": []
+    },
+    {
+      "repository_id": "47806393",
+      "name": "feldroy/air",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "161133770",
+      "name": "feast-dev/feast",
+      "selection_group": "data",
+      "aliases": []
+    },
+    {
+      "repository_id": "1308234922",
+      "name": "Tiger3807861189/J-Space-Cognition-Suite",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "360657894",
+      "name": "adtzlr/felupe",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "37912001",
+      "name": "yinkaisheng/Python-UIAutomation-for-Windows",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "203157084",
+      "name": "schemathesis/schemathesis",
+      "selection_group": "cli",
+      "aliases": []
+    },
+    {
+      "repository_id": "3111557",
+      "name": "pycontribs/jenkinsapi",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "44104712",
+      "name": "donnemartin/awesome-aws",
+      "selection_group": "ml",
+      "aliases": []
+    },
+    {
+      "repository_id": "443025198",
+      "name": "ctripcorp/flybirds",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "673277958",
+      "name": "datajuicer/data-juicer",
+      "selection_group": "data",
+      "aliases": []
+    },
+    {
+      "repository_id": "137216497",
+      "name": "GIS4WRF/gis4wrf",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "290261325",
+      "name": "basnijholt/adaptive-lighting",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "171899746",
+      "name": "bchao1/bullet",
+      "selection_group": "cli",
+      "aliases": []
+    },
+    {
+      "repository_id": "415188495",
+      "name": "devstream-io/devstream",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "261372860",
+      "name": "DLR-RM/stable-baselines3",
+      "selection_group": "ml",
+      "aliases": []
+    },
+    {
+      "repository_id": "154271689",
+      "name": "helloflask/flask-tutorial",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "23011147",
+      "name": "scikit-learn-contrib/imbalanced-learn",
+      "selection_group": "data",
+      "aliases": []
+    },
+    {
+      "repository_id": "1153178500",
+      "name": "jgravelle/jcodemunch-mcp",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "35372482",
+      "name": "ilayn/harold",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "17828059",
+      "name": "xlwings/xlwings",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "1083162948",
+      "name": "SeemSeam/claude_codex_bridge",
+      "selection_group": "cli",
+      "aliases": []
+    },
+    {
+      "repository_id": "64034523",
+      "name": "opsdroid/opsdroid",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "70746484",
+      "name": "apache/tvm",
+      "selection_group": "ml",
+      "aliases": []
+    },
+    {
+      "repository_id": "20834297",
+      "name": "distrochooser/distrochooser",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "8307391",
+      "name": "mahmoud/boltons",
+      "selection_group": "data",
+      "aliases": []
+    },
+    {
+      "repository_id": "24642075",
+      "name": "sunscrapers/djoser",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "132334822",
+      "name": "wkcn/MobulaOP",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "1185330299",
+      "name": "lxf746/any-auto-register",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "20870711",
+      "name": "sloria/doitlive",
+      "selection_group": "cli",
+      "aliases": []
+    },
+    {
+      "repository_id": "684215",
+      "name": "netaddr/netaddr",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "1255768549",
+      "name": "dondai1234/master-fetch",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "40242771",
+      "name": "rushter/data-science-blogs",
+      "selection_group": "data",
+      "aliases": []
+    },
+    {
+      "repository_id": "1078850969",
+      "name": "FrancyJGLisboa/agent-skills-platform",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "298564418",
+      "name": "xitorch/xitorch",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "270611419",
+      "name": "Miksus/rocketry",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "62723181",
+      "name": "jarun/ddgr",
+      "selection_group": "cli",
+      "aliases": []
+    },
+    {
+      "repository_id": "45049026",
+      "name": "HariSekhon/DevOps-Python-tools",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "839428333",
+      "name": "huggingface/speech-to-speech",
+      "selection_group": "ml",
+      "aliases": []
+    },
+    {
+      "repository_id": "228448546",
+      "name": "josharsh/100LinesOfCode",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "189640071",
+      "name": "aimhubio/aim",
+      "selection_group": "data",
+      "aliases": []
+    },
+    {
+      "repository_id": "1113327297",
+      "name": "digitalsamba/claude-code-video-toolkit",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "249088514",
+      "name": "scottshambaugh/monaco",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "137223122",
+      "name": "deepjyoti30/ytmdl",
+      "selection_group": "cli",
+      "aliases": []
+    },
+    {
+      "repository_id": "1296107475",
+      "name": "William-Lu-stack/Flawless",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "59944455",
+      "name": "MorvanZhou/tutorials",
+      "selection_group": "ml",
+      "aliases": []
+    },
+    {
+      "repository_id": "1381103",
+      "name": "TurboGears/tg2",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "167388434",
+      "name": "online-ml/river",
+      "selection_group": "data",
+      "aliases": []
+    },
+    {
+      "repository_id": "447609265",
+      "name": "instill-ai/instill-core",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "932055204",
+      "name": "spack/spack-packages",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "30382555",
+      "name": "kizniche/Mycodo",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "294965042",
+      "name": "gnebbia/kb",
+      "selection_group": "cli",
+      "aliases": []
+    },
+    {
+      "repository_id": "94255035",
+      "name": "infobyte/spoilerwall",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "92983437",
+      "name": "jacobgil/pytorch-grad-cam",
+      "selection_group": "ml",
+      "aliases": []
+    },
+    {
+      "repository_id": "1113893223",
+      "name": "BlessedRebuS/Krawl",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "52581991",
+      "name": "snorkel-team/snorkel",
+      "selection_group": "data",
+      "aliases": []
+    },
+    {
+      "repository_id": "1188860591",
+      "name": "MrGeDiao/shuorenhua",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "298394060",
+      "name": "pmocz/finitevolume-python",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "834595923",
+      "name": "av/harbor",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "269419089",
+      "name": "archivy/archivy",
+      "selection_group": "cli",
+      "aliases": []
+    },
+    {
+      "repository_id": "28885080",
+      "name": "cloudtools/stacker",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "101399935",
+      "name": "zalandoresearch/fashion-mnist",
+      "selection_group": "ml",
+      "aliases": []
+    },
+    {
+      "repository_id": "173486738",
+      "name": "Stefal/rtkbase",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "43759462",
+      "name": "ujjwalkarn/DataSciencePython",
+      "selection_group": "data",
+      "aliases": []
+    },
+    {
+      "repository_id": "1019609805",
+      "name": "mozilla-ai/any-llm",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "439307335",
+      "name": "pymovements/pymovements",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "629177820",
+      "name": "Josh-XT/AGiXT",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "171725612",
+      "name": "awslabs/aws-deployment-framework",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "498449014",
+      "name": "nerfstudio-project/nerfstudio",
+      "selection_group": "ml",
+      "aliases": []
+    },
+    {
+      "repository_id": "8633551",
+      "name": "GoogleChrome/chromium-dashboard",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "8357227",
+      "name": "biolab/orange3",
+      "selection_group": "data",
+      "aliases": []
+    },
+    {
+      "repository_id": "636553615",
+      "name": "Anil-matcha/open-agent-email",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "76085697",
+      "name": "betterscientificsoftware/bssw.io",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "16354416",
+      "name": "thp/urlwatch",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "705433049",
+      "name": "xlang-ai/OSWorld",
+      "selection_group": "cli",
+      "aliases": []
+    },
+    {
+      "repository_id": "484565105",
+      "name": "ossillate-inc/packj",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "34106396",
+      "name": "yashaka/selene",
+      "selection_group": "web",
+      "aliases": []
+    },
+    {
+      "repository_id": "314197645",
+      "name": "zenml-io/zenml",
+      "selection_group": "data",
+      "aliases": []
+    },
+    {
+      "repository_id": "1147019563",
+      "name": "inferstep/ATLAS",
+      "selection_group": "tools",
+      "aliases": []
+    },
+    {
+      "repository_id": "938058607",
+      "name": "pasteurlabs/tesseract-core",
+      "selection_group": "science",
+      "aliases": []
+    },
+    {
+      "repository_id": "290879784",
+      "name": "nidhaloff/igel",
+      "selection_group": "automation",
+      "aliases": []
+    },
+    {
+      "repository_id": "107708057",
+      "name": "Azure/azure-devops-cli-extension",
+      "selection_group": "infra",
+      "aliases": []
+    },
+    {
+      "repository_id": "909184070",
+      "name": "iamtelescope/telescope",
+      "selection_group": "web",
+      "aliases": []
+    }
+  ]
+}
