@@ -116,3 +116,13 @@ jobs:
       - name: Clean up
         if: always()
         run: docker rm -f argo-check || true
+
+  airflow:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv python install 3.12
+      - name: Parse manual DAG with the real isolated Airflow SDK
+        run: uv run --no-project --python 3.12 --with apache-airflow==3.3.2 python tests/airflow_dag_check.py
