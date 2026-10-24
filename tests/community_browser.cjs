@@ -195,7 +195,7 @@ async function main() {
         date:new Date(Date.UTC(2026,6,24+i)).toISOString().slice(0,10),events:0
     }));
     synthetic.weeks = Array.from({length:13},(_,i)=>({
-        start:synthetic.source.coverage[i*7].date,complete:i<12
+        ...baseline.weeks[0], start:synthetic.source.coverage[i*7].date,complete:i<12
     }));
     synthetic.cohorts = synthetic.weeks.map((w,i)=>({
         start:w.start,size:1,cells:Array.from({length:13},(_,j)=>
@@ -207,6 +207,7 @@ async function main() {
     expanded.on("pageerror",error=>errors.push(error.message));
     await expanded.route("**/api/community*",route=>route.fulfill({json:synthetic}));
     await expanded.goto(base+"/community");
+    await expanded.getByText(baseline.totals.events.toLocaleString("en-US"),{exact:true}).first().waitFor();
     await expanded.getByRole("button",{name:/Participation & Concentration/}).click();
     const wide=expanded.getByRole("table",{name:/Observed weekly cohort returns/});
     await wide.waitFor();
