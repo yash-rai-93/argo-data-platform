@@ -41,6 +41,14 @@ Verify on a development build:
 6. Check DNT/GPC, SDK load failure, and local-storage failure.
 7. Confirm at least one real event in Mixpanel Live View before calling setup live.
 
-Mixpanel project yash (4028794) is accessible through the connector.
-Live View verification and project residency/identity settings remain unverified. No production events have been intentionally sent
-during implementation.
+Mixpanel project yash (4028794), workspace 4524973, is connected. Production
+configuration was deployed to https://argo-data-platform.vercel.app/ on 2026-10-24.
+Both dashboard_viewed and prediction_completed were observed in Mixpanel Live
+View after the user's consented test. Initial empty results were followed by
+event arrival; allow for ingestion delay before diagnosing a failure.
+
+The connected Brave browser was confirmed to send Global Privacy Control,
+which intentionally prevents SDK initialization even after acceptance. Validate
+delivery in a browser profile that allows tracking; preserve privacy signals.
+Preview and CI builds have no production token. Project identity mode/residency
+settings have not been independently inspected; visitors remain anonymous.
