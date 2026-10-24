@@ -23,7 +23,7 @@ deployed by this implementation.
 - Kafka 4.2.1, one broker/controller, replication factor one, persistent named volume.
   The host port binds to loopback. This is a trusted local sandbox without TLS/SASL,
   not an internet-facing or highly available broker.
-- PySpark 4.1.0, Java 17, matching Kafka connector with Scala 2.13.
+- PySpark 4.1.4, Java 17, matching Kafka connector with Scala 2.13.
 - Linux consumer with two local Spark threads, bounded available-now execution.
   It processes available offsets and exits. Run it again to drain later input.
 - Persistent local checkpoint and SQLite database must stay together on one host.
@@ -51,12 +51,12 @@ Start Kafka:
 First inspect a replay plan. This downloads and validates the approved snapshot;
 it does not start Spark or write Kafka records:
 
-    uv run --no-project --python 3.12 --with pyspark==4.1.0 python -m streaming.spark_replay replay --limit 1000 --replay-id demo-1
+    uv run --no-project --python 3.12 --with pyspark==4.1.4 python -m streaming.spark_replay replay --limit 1000 --replay-id demo-1
 
 Then write the capped replay and consume it:
 
-    uv run --no-project --python 3.12 --with pyspark==4.1.0 python -m streaming.spark_replay replay --limit 1000 --replay-id demo-1 --apply
-    uv run --no-project --python 3.12 --with pyspark==4.1.0 python -m streaming.spark_replay consume
+    uv run --no-project --python 3.12 --with pyspark==4.1.4 python -m streaming.spark_replay replay --limit 1000 --replay-id demo-1 --apply
+    uv run --no-project --python 3.12 --with pyspark==4.1.4 python -m streaming.spark_replay consume
 
 Outputs default to data/generated/streaming/events.sqlite and its adjacent
 checkpoint directory, outside tracked Git files. Repeat consume to resume offsets.
@@ -98,6 +98,6 @@ requirements explicitly and record evidence before claiming real-time delivery.
 
 Official references:
 
-- https://spark.apache.org/docs/4.1.0/streaming/apis-on-dataframes-and-datasets.html
+- https://spark.apache.org/docs/4.1.4/streaming/apis-on-dataframes-and-datasets.html
 - https://spark.apache.org/docs/latest/structured-streaming-kafka-integration.html
 - https://kafka.apache.org/community/downloads/

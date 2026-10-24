@@ -12,7 +12,7 @@ from etl import incremental_community as incremental
 from etl import pilot_activity as pilot
 from streaming.contract import Sink, envelope
 
-SPARK_VERSION = "4.1.0"
+SPARK_VERSION = "4.1.4"
 CONNECTOR = "org.apache.spark:spark-sql-kafka-0-10_2.13:" + SPARK_VERSION
 
 
