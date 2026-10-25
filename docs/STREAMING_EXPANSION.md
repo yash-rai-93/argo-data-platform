@@ -14,8 +14,12 @@ The bounded incremental implementation is ready for its first cloud run:
 see [incremental ingestion runbook](INCREMENTAL_COMMUNITY.md).
 It queries new days with a two-day overlap and retains a rolling 90-day report.
 Cloud deployment evidence for incremental ingestion is still pending.
-Airflow, Kafka and PySpark remain future milestones. Credit balance and expiry
-remain independently unverified.
+The manual Airflow DAG is implemented and parsed with the real SDK in CI;
+its scheduler/runtime deployment remains pending. Kafka/PySpark bounded historical
+replay and controlled checkpoint recovery are implemented and verified in CI.
+See [Airflow](AIRFLOW.md), [Kafka/PySpark](KAFKA_SPARK.md) and the recorded
+[operational evidence](OPERATIONAL_EVIDENCE.md). Live ingestion, sustained cloud
+benchmarks, actual currency costs, credit balance and expiry remain unverified.
 
 ## Milestones
 

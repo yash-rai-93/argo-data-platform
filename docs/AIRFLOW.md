@@ -63,7 +63,10 @@ Airflow's one-active-run limit applies only to this DAG.
 
 Publication remains reviewed. Do not claim automatic publication, live Airflow
 deployment, scheduled ingestion, or streaming based on this DAG alone.
-Kafka/PySpark and recovery/lag benchmarks remain later milestones.
+The separate [Kafka/PySpark historical replay](KAFKA_SPARK.md) now has controlled
+CI throughput, replay-delay and checkpoint-recovery measurements; see
+[operational evidence](OPERATIONAL_EVIDENCE.md). Live-source lag and deployed
+cloud runtime evidence remain pending.
 
 Official references:
 

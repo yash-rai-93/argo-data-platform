@@ -82,8 +82,11 @@ The separate CI streaming job starts a real broker, sends **synthetic** fixtures
 runs the actual Spark Kafka connector. It injects a failure after sink commit but
 before Spark batch checkpoint completion, restarts, checks stable counts, restarts
 without input, and replays duplicate records. Expected final counts are three unique
-events, four quarantined records and twelve consumed Kafka records. These are test
-fixtures, not measured GitHub community activity.
+events, four quarantined records and twelve consumed Kafka records before the
+throughput trials. Three additional 1,000-event synthetic trials bring the final
+counts to 3,003 unique events, four quarantine records and 3,012 Kafka records.
+See [operational evidence](OPERATIONAL_EVIDENCE.md) for measured timings and the
+committed run JSON. These are test fixtures, not GitHub community activity.
 
 The SQLite batches table records input, new, duplicate and invalid counts per batch.
 The messages table identifies Kafka topic/partition/offset; events contains deduped
