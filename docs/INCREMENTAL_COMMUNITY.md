@@ -101,5 +101,8 @@ no-write dry runs, and completed-query reuse. They do not prove live IAM, curren
 source availability, or actual cloud billing. The first successful cloud apply
 and production check remain required deployment evidence.
 
-Airflow orchestration is the next milestone. It can invoke this bounded ingestion
-entry point; Kafka/PySpark and recovery benchmarks remain later work.
+The [manual Airflow DAG](AIRFLOW.md) now invokes this bounded ingestion entry point
+and is parsed in CI; its runtime deployment remains pending. The separate
+[Kafka/PySpark replay](KAFKA_SPARK.md) and controlled CI recovery measurements are
+implemented; see [operational evidence](OPERATIONAL_EVIDENCE.md). They do not prove
+live GitHub ingestion or advance this report's approved cursor.
